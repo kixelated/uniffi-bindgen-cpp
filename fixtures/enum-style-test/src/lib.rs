@@ -9,6 +9,11 @@ enum ComplexEnum {
     VariantTwo { flt: f32 },
 }
 
+struct RepeatedDependencies {
+    first: SimpleEnum,
+    second: SimpleEnum,
+}
+
 fn get_simple_enum() -> SimpleEnum {
     SimpleEnum::VariantOne
 }
@@ -20,5 +25,9 @@ fn get_complex_enum() -> ComplexEnum {
 }
 
 fn set_complex_enum(_: ComplexEnum) {}
+
+fn roundtrip_repeated_dependencies(value: RepeatedDependencies) -> RepeatedDependencies {
+    value
+}
 
 uniffi::include_scaffolding!("enum_style_test");
