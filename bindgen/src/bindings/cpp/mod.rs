@@ -100,13 +100,6 @@ impl BindingGenerator for CppBindingGenerator {
                 );
             }
 
-            if ci.has_async_fns() {
-                eprintln!(
-                    "Warning: omitting unsupported async functions from namespace: {}",
-                    ci.namespace()
-                );
-            }
-
             if self.scaffolding_mode {
                 unimplemented!("Cpp scaffolding is not supported yet!");
             } else {

@@ -21,6 +21,7 @@ uniffi-fixture-docstring = { git = "https://github.com/mozilla/uniffi-rs.git", t
 uniffi-fixture-time = { git = "https://github.com/mozilla/uniffi-rs.git", tag = "v0.31.2" }
 uniffi-fixture-trait-methods = { git = "https://github.com/mozilla/uniffi-rs.git", tag = "v0.31.2" }
 
+uniffi-async-calls = { path = "async-calls" }
 uniffi-error-types-builtin = { path = "error-types-builtin" }
 uniffi-custom-types-builtin = { path = "custom-types-builtin" }
 uniffi-enum-style-test = { path = "enum-style-test" }

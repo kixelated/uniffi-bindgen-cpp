@@ -26,6 +26,8 @@ struct RustCallStatus {
     RustBuffer error_buf;
 };
 
+typedef void (*RustFutureContinuationCallback)(uint64_t callback_data, int8_t poll_result);
+
 #endif
 
 {%- for def in self.scaffolding_definitions() %}

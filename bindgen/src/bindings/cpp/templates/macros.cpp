@@ -66,6 +66,92 @@
         uniffi::{{ self_type|lower_fn }}(other))
 {%- endmacro %}
 
+{% macro rust_call_async(func, return_type) -%}
+    uniffi::rust_call_async<{{ return_type }}>(
+        [&]() {
+            return {{ func.ffi_func().name() }}(
+                {%- call arg_list_lowered(func) -%}
+            );
+        },
+        {{ func.ffi_rust_future_poll(ci) }},
+        {{ func.ffi_rust_future_cancel(ci) }},
+        {{ func.ffi_rust_future_complete(ci) }},
+        {{ func.ffi_rust_future_free(ci) }},
+        [](auto value) { return uniffi::{{ func.return_type().unwrap()|lift_fn }}(value); },
+{%- match func.throws_type() %}
+{% when Some with (e) %}
+        uniffi::{{ e|ffi_error_converter_name }}::lift
+{%- else %}
+        nullptr
+{%- endmatch %}
+    )
+{%- endmacro %}
+
+{% macro rust_call_async_void(func) -%}
+    uniffi::rust_call_async<void>(
+        [&]() {
+            return {{ func.ffi_func().name() }}(
+                {%- call arg_list_lowered(func) -%}
+            );
+        },
+        {{ func.ffi_rust_future_poll(ci) }},
+        {{ func.ffi_rust_future_cancel(ci) }},
+        {{ func.ffi_rust_future_complete(ci) }},
+        {{ func.ffi_rust_future_free(ci) }},
+        nullptr,
+{%- match func.throws_type() %}
+{% when Some with (e) %}
+        uniffi::{{ e|ffi_error_converter_name }}::lift
+{%- else %}
+        nullptr
+{%- endmatch %}
+    )
+{%- endmacro %}
+
+{% macro rust_call_async_with_prefix(prefix, func, return_type) -%}
+    uniffi::rust_call_async<{{ return_type }}>(
+        [&]() {
+            return {{ func.ffi_func().name() }}(
+                {{ prefix }}{% if !func.arguments().is_empty() %}, {% endif %}
+                {%- call arg_list_lowered(func) -%}
+            );
+        },
+        {{ func.ffi_rust_future_poll(ci) }},
+        {{ func.ffi_rust_future_cancel(ci) }},
+        {{ func.ffi_rust_future_complete(ci) }},
+        {{ func.ffi_rust_future_free(ci) }},
+        [](auto value) { return uniffi::{{ func.return_type().unwrap()|lift_fn }}(value); },
+{%- match func.throws_type() %}
+{% when Some with (e) %}
+        uniffi::{{ e|ffi_error_converter_name }}::lift
+{%- else %}
+        nullptr
+{%- endmatch %}
+    )
+{%- endmacro %}
+
+{% macro rust_call_async_void_with_prefix(prefix, func) -%}
+    uniffi::rust_call_async<void>(
+        [&]() {
+            return {{ func.ffi_func().name() }}(
+                {{ prefix }}{% if !func.arguments().is_empty() %}, {% endif %}
+                {%- call arg_list_lowered(func) -%}
+            );
+        },
+        {{ func.ffi_rust_future_poll(ci) }},
+        {{ func.ffi_rust_future_cancel(ci) }},
+        {{ func.ffi_rust_future_complete(ci) }},
+        {{ func.ffi_rust_future_free(ci) }},
+        nullptr,
+{%- match func.throws_type() %}
+{% when Some with (e) %}
+        uniffi::{{ e|ffi_error_converter_name }}::lift
+{%- else %}
+        nullptr
+{%- endmatch %}
+    )
+{%- endmacro %}
+
 {% macro param_list(func) %}
 {%- for arg in func.arguments() -%}
 {{ arg|parameter(ci) }}

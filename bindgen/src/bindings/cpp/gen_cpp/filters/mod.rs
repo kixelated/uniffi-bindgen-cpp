@@ -350,6 +350,7 @@ pub(crate) fn ffi_type_name(ffi_type: &FfiType) -> Result<String> {
         FfiType::VoidPointer => "void *".into(),
         FfiType::RustBuffer(_) => "RustBuffer".into(),
         FfiType::ForeignBytes => "ForeignBytes".into(),
+        FfiType::Callback(name) if name == "RustFutureContinuationCallback" => name.clone(),
         FfiType::Callback(_) => "void *".into(),
         FfiType::Struct(name) => ffi_struct_name(name)?,
         FfiType::RustCallStatus => "RustCallStatus*".into(),

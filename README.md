@@ -44,11 +44,18 @@ Regardless of the generation method, these files are produced:
 To integrate the bindings into your projects, simply add the generated bindings files to your project.
 C++17 or newer is required to compile the bindings.
 
+# Async functions
+
+Rust async functions, constructors, and object methods return a move-only `uniffi::Future<T>`.
+The future supports `get()`, `wait()`, `wait_for()`, and `cancel()`. Destroying an incomplete future
+also requests cancellation. Each in-flight Rust future uses a dedicated worker thread to serialize
+its UniFFI poll, cancel, complete, and free operations.
+
 # Unsupported features
 
 The following uniffi features are unsupported.
 
-* Async functions
+* Async callback-interface methods
 
 # Configuration options
 

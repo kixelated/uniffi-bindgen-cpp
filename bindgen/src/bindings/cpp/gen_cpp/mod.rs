@@ -118,11 +118,7 @@ impl<'a> ScaffoldingHeader<'a> {
                     .flat_map(|o| o.vtable_definition()),
             )
             .map(Into::into)
-            .chain(
-                self.ci
-                    .iter_ffi_function_definitions_non_async()
-                    .map(Into::into),
-            )
+            .chain(self.ci.iter_ffi_function_definitions().map(Into::into))
     }
 }
 
