@@ -170,6 +170,7 @@ void rustbuffer_free(RustBuffer);
 } // namespace uniffi
 
 {%~ for func in ci.function_definitions() %}
+{%- if !func.is_async() %}
 {%- call macros::docstring(func, 0) %}
 {%- match func.return_type() %}
 {%- when Some with (return_type) %}
@@ -177,5 +178,6 @@ void rustbuffer_free(RustBuffer);
 {%- when None %}
 void {{ func.name()|fn_name }}({% call macros::param_list(func) %});
 {%- endmatch %}
+{%- endif %}
 {%- endfor %}
 } // namespace {{ namespace }}

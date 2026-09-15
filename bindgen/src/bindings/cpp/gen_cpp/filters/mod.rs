@@ -1,7 +1,7 @@
 use askama;
 use heck::{ToShoutySnakeCase, ToSnakeCase, ToUpperCamelCase};
 use uniffi_bindgen::{
-    interface::{Argument, AsType, FfiType, Literal, Object, Type, Variant},
+    interface::{Argument, AsType, DefaultValue, FfiType, Literal, Object, Type, Variant},
     ComponentInterface,
 };
 
@@ -273,11 +273,19 @@ pub(crate) fn object_names(obj: &Object) -> Result<(String, String)> {
 }
 
 pub(crate) fn literal_cpp(
-    literal: &Literal,
+    default: &DefaultValue,
     as_ct: &impl AsCodeType,
     enum_style: &EnumStyle,
     ci: &ComponentInterface,
 ) -> Result<String> {
+    let literal = match default {
+        DefaultValue::Default => return Ok("{}".into()),
+        DefaultValue::Literal(Literal::Some { inner }) => {
+            return literal_cpp(inner, as_ct, enum_style, ci)
+        }
+        DefaultValue::Literal(literal) => literal,
+    };
+
     match literal {
         Literal::Enum(name, _) => Ok(format!(
             "{}::{}",
@@ -339,7 +347,7 @@ pub(crate) fn ffi_type_name(ffi_type: &FfiType) -> Result<String> {
         FfiType::Int64 => "int64_t".into(),
         FfiType::Float32 => "float".into(),
         FfiType::Float64 => "double".into(),
-        FfiType::RustArcPtr(_) | FfiType::VoidPointer => "void *".into(),
+        FfiType::VoidPointer => "void *".into(),
         FfiType::RustBuffer(_) => "RustBuffer".into(),
         FfiType::ForeignBytes => "ForeignBytes".into(),
         FfiType::Callback(_) => "void *".into(),

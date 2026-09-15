@@ -73,3 +73,11 @@ obj->{{ scaffolding_fn.name() }}(
 {% endfor %}
 {%- if ffi_func.has_rust_call_status_arg() %}RustCallStatus *out_status{% endif -%})
 {% endmacro %}
+
+{% macro field_name(field, field_num) %}
+{%- if field.name().is_empty() -%}
+v{{- field_num -}}
+{%- else -%}
+{{ field.name()|var_name }}
+{%- endif -%}
+{%- endmacro %}

@@ -127,6 +127,8 @@ void rust_call_trait_interface_with_error(RustCallStatus* status, F make_call, W
 {{ type_helper_code }}
 
 {%- for func in ci.function_definitions() %}
+{%- if !func.is_async() %}
 {% include "fn_def.cpp" %}
+{%- endif %}
 {% endfor -%}
 } // namespace {{ namespace }}

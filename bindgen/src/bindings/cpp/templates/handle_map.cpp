@@ -14,7 +14,8 @@ template <typename T> struct HandleMap {
         auto handle = this->cur_handle;
 
         this->map.insert({ handle, impl });
-        this->cur_handle += 1;
+        // UniFFI reserves odd values for handles created by foreign bindings.
+        this->cur_handle += 2;
 
         return handle;
     }
@@ -39,6 +40,6 @@ template <typename T> struct HandleMap {
         HandleMap<T> &operator=(HandleMap<T> &&) = delete;
 
         std::mutex mutex;
-        uint64_t cur_handle = 0;
+        uint64_t cur_handle = 1;
         std::map<uint64_t, std::shared_ptr<T>> map;
 };

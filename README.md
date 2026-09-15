@@ -13,6 +13,12 @@ Newer Rust versions should also work fine.
 cargo install uniffi-bindgen-cpp --git https://github.com/NordSecurity/uniffi-bindgen-cpp --tag v0.8.1+v0.29.4
 ```
 
+For this UniFFI 0.31 development branch, install directly from the checkout:
+
+```bash
+cargo install --path bindgen
+```
+
 # How to generate bindings
 
 ## Generating with a single UDL file
