@@ -24,12 +24,14 @@ namespace uniffi {
         static uint64_t uniffi_clone(uint64_t uniffi_handle);
         static void init();
     private:
-        static inline {{ vtable|ffi_type_name }} vtable = {{ vtable|ffi_type_name}} {
-            .uniffi_free = reinterpret_cast<void *>(&uniffi_free),
-            .uniffi_clone = reinterpret_cast<void *>(&uniffi_clone),
+        static inline {{ vtable|ffi_type_name }} vtable = [] {
+            {{ vtable|ffi_type_name }} value{};
+            value.uniffi_free = reinterpret_cast<void *>(&uniffi_free);
+            value.uniffi_clone = reinterpret_cast<void *>(&uniffi_clone);
             {%- for (ffi_callback, meth) in vtable_methods.iter() %}
-            .{{ meth.name()|var_name }} = reinterpret_cast<void *>(&{{ meth.name()|var_name }}),
+            value.{{ meth.name()|var_name }} = reinterpret_cast<void *>(&{{ meth.name()|var_name }});
             {%- endfor %}
-        };
+            return value;
+        }();
     };
 }

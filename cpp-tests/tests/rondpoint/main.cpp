@@ -26,10 +26,10 @@ void affirm_enchaine(const T& c, const F& func, Args&& ...arg) {
 
 void test_copy() {
     auto dict = rondpoint::Dictionnaire {
-        .un = rondpoint::Enumeration::kDeux,
-        .deux = true,
-        .petit_nombre = 0,
-        .gros_nombre = 123456789u
+        rondpoint::Enumeration::kDeux,
+        true,
+        0,
+        123456789u
     };
     auto copied_dict = rondpoint::copie_dictionnaire(dict);
     ASSERT_EQ(dict.un, copied_dict.un);
@@ -44,8 +44,8 @@ void test_copy() {
 
     auto map = std::unordered_map<std::string, rondpoint::EnumerationAvecDonnees> {
         { "zero",  rondpoint::EnumerationAvecDonnees::kZero {}},
-        { "un",  rondpoint::EnumerationAvecDonnees::kUn {.premier = 2}},
-        { "deux", rondpoint::EnumerationAvecDonnees::kDeux {.premier= 1, .second = "test"}}
+        { "un",  rondpoint::EnumerationAvecDonnees::kUn {2}},
+        { "deux", rondpoint::EnumerationAvecDonnees::kDeux {1, "test"}}
     };
     auto copied_map = rondpoint::copie_carte(map);
     ASSERT_EQ(map.size(), copied_map.size());
@@ -100,10 +100,10 @@ void test_roundtrip() {
 
     for (auto i : {-1, 0, 1}) {
         auto nombres_signes = rondpoint::DictionnaireNombresSignes {
-            .petit_nombre = (int8_t)i,
-            .court_nombre = (int16_t)i,
-            .nombre_simple = (int32_t)i,
-            .gros_nombre = (int64_t)i,
+            (int8_t)i,
+            (int16_t)i,
+            (int32_t)i,
+            (int64_t)i,
         };
         auto ret = rt->identique_nombres_signes(nombres_signes);
 
@@ -115,10 +115,10 @@ void test_roundtrip() {
 
     for (auto i : {0, 1}) {
         auto nombres = rondpoint::DictionnaireNombres {
-            .petit_nombre = (uint8_t)i,
-            .court_nombre = (uint16_t)i,
-            .nombre_simple = (uint32_t)i,
-            .gros_nombre = (uint64_t)i,
+            (uint8_t)i,
+            (uint16_t)i,
+            (uint32_t)i,
+            (uint64_t)i,
         };
         auto ret = rt->identique_nombres(nombres);
 
@@ -181,21 +181,21 @@ void test_default_parameter_literals_in_record() {
 
     auto rt = rondpoint::Retourneur::init();
     auto dict = rondpoint::OptionneurDictionnaire {
-        .i8_var = -8,
-        .u8_var = 8,
-        .i16_var = -16,
-        .u16_var = 0x10,
-        .i32_var = -32,
-        .u32_var = 32,
-        .i64_var = -64,
-        .u64_var = 64,
-        .float_var = 4.0f,
-        .double_var = 8.0,
-        .boolean_var = true,
-        .string_var = "default",
-        .list_var = std::vector<std::string>{},
-        .enumeration_var = rondpoint::Enumeration::kDeux,
-        .dictionnaire_var = std::nullopt
+        -8,
+        8,
+        -16,
+        0x10,
+        -32,
+        32,
+        -64,
+        64,
+        4.0f,
+        8.0,
+        true,
+        "default",
+        std::vector<std::string>{},
+        rondpoint::Enumeration::kDeux,
+        std::nullopt
     };
     auto copied_dict = rt->identique_optionneur_dictionnaire(dict);
     ASSERT_EQ(dict.i8_var, copied_dict.i8_var);

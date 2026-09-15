@@ -8,7 +8,6 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <bit>
 #include <algorithm>
 #include <iostream>
 #include <cstdlib>
@@ -125,11 +124,10 @@ extern "C" {
 UNIFFI_EXPORT RustBuffer {{ ci.ffi_rustbuffer_alloc().name() }}(int32_t size, RustCallStatus *out_status) {
     out_status->code = UNIFFI_CALL_STATUS_OK;
 
-    RustBuffer buf = {
-        .capacity = size,
-        .len = size,
-        .data = new uint8_t[size],
-    };
+    RustBuffer buf{};
+    buf.capacity = size;
+    buf.len = size;
+    buf.data = new uint8_t[size];
 
     return std::move(buf);
 }
@@ -137,11 +135,10 @@ UNIFFI_EXPORT RustBuffer {{ ci.ffi_rustbuffer_alloc().name() }}(int32_t size, Ru
 UNIFFI_EXPORT RustBuffer {{ ci.ffi_rustbuffer_from_bytes().name() }}(ForeignBytes bytes, RustCallStatus *out_status) {
     out_status->code = UNIFFI_CALL_STATUS_OK;
 
-    RustBuffer buf = {
-        .capacity = bytes.len,
-        .len = bytes.len,
-        .data = new uint8_t[bytes.len],
-    };
+    RustBuffer buf{};
+    buf.capacity = bytes.len;
+    buf.len = bytes.len;
+    buf.data = new uint8_t[bytes.len];
 
     std::copy(bytes.data, bytes.data + bytes.len, buf.data);
 
@@ -157,11 +154,10 @@ UNIFFI_EXPORT void {{ ci.ffi_rustbuffer_free().name() }}(RustBuffer buf, RustCal
 UNIFFI_EXPORT RustBuffer {{ ci.ffi_rustbuffer_reserve().name() }}(RustBuffer buffer, int32_t additional, RustCallStatus *out_status) {
     out_status->code = UNIFFI_CALL_STATUS_OK;
 
-    RustBuffer buf = {
-        .capacity = buffer.capacity + additional,
-        .len = buffer.len,
-        .data = (uint8_t*)std::realloc(buffer.data, buffer.capacity + additional),
-    };
+    RustBuffer buf{};
+    buf.capacity = buffer.capacity + additional;
+    buf.len = buffer.len;
+    buf.data = (uint8_t*)std::realloc(buffer.data, buffer.capacity + additional);
 
     return std::move(buf);
 }

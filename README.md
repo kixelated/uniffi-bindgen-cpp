@@ -42,7 +42,7 @@ Regardless of the generation method, these files are produced:
 # How to integrate bindings
 
 To integrate the bindings into your projects, simply add the generated bindings files to your project.
-C++20 is required to compile the bindings.
+C++17 or newer is required to compile the bindings.
 
 # Unsupported features
 
