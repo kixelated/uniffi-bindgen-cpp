@@ -23,7 +23,7 @@ struct RustStream: std::basic_iostream<char> {
     RustStream &operator>>(T &val) {
         read(reinterpret_cast<char *>(&val), sizeof(T));
 
-        if (std::endian::native != std::endian::big) {
+        if (native_byte_order_is_little_endian()) {
             auto bytes = reinterpret_cast<char *>(&val);
 
             std::reverse(bytes, bytes + sizeof(T));
@@ -34,7 +34,7 @@ struct RustStream: std::basic_iostream<char> {
 
     template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
     RustStream &operator<<(T val) {
-        if (std::endian::native != std::endian::big) {
+        if (native_byte_order_is_little_endian()) {
             auto bytes = reinterpret_cast<char *>(&val);
 
             std::reverse(bytes, bytes + sizeof(T));
@@ -45,6 +45,11 @@ struct RustStream: std::basic_iostream<char> {
         return *this;
     }
 private:
+    // Avoid platform-specific endian APIs while retaining C++17 compatibility.
+    static bool native_byte_order_is_little_endian() {
+        const uint16_t value = 1;
+        return *reinterpret_cast<const unsigned char *>(&value) == 1;
+    }
+
     RustStreamBuffer streambuf;
 };
-

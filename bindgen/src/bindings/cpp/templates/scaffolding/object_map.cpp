@@ -11,8 +11,9 @@ template <typename T> struct ObjectMap {
         std::lock_guard<std::mutex> guard(this->mutex);
         auto key = (uint64_t)impl.get();
 
-        if (this->map.contains(key)) {
-            this->map.at(key).ref_count += 1;
+        auto it = this->map.find(key);
+        if (it != this->map.end()) {
+            it->second.ref_count += 1;
         } else {
             this->map.insert({ key, {impl, 1} });
         }
