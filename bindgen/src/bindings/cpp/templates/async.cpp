@@ -1,6 +1,35 @@
 constexpr int8_t UNIFFI_RUST_FUTURE_POLL_READY = 0;
 constexpr int8_t UNIFFI_RUST_FUTURE_POLL_WAKE = 1;
 
+template <typename Free>
+class RustFutureHandleGuard {
+public:
+    // Own the Rust handle until all potentially-throwing C++ wrappers exist.
+    RustFutureHandleGuard(uint64_t handle, Free &free) noexcept:
+        handle_(handle), free_(free) {}
+
+    RustFutureHandleGuard(const RustFutureHandleGuard &) = delete;
+    RustFutureHandleGuard &operator=(const RustFutureHandleGuard &) = delete;
+
+    ~RustFutureHandleGuard() {
+        if (active_) {
+            try {
+                free_(handle_);
+            } catch (...) {
+            }
+        }
+    }
+
+    void release() noexcept {
+        active_ = false;
+    }
+
+private:
+    uint64_t handle_;
+    Free &free_;
+    bool active_ = true;
+};
+
 template <typename T, typename Poll, typename Cancel, typename Complete, typename Free, typename Lift, typename ErrorHandler>
 class RustFutureState: public std::enable_shared_from_this<RustFutureState<T, Poll, Cancel, Complete, Free, Lift, ErrorHandler>> {
 public:
@@ -259,6 +288,7 @@ Future<T> rust_call_async(
 ) {
     initialize();
     const auto handle = rust_future();
+    RustFutureHandleGuard<Free> handle_guard(handle, free);
     using State = RustFutureState<T, Poll, Cancel, Complete, Free, Lift, ErrorHandler>;
 
     auto state = std::make_shared<State>(
@@ -266,16 +296,20 @@ Future<T> rust_call_async(
         std::move(poll),
         std::move(cancel),
         std::move(complete),
-        std::move(free),
+        // Keep the guard's cleanup callable valid until ownership transfers.
+        free,
         std::move(lift),
         std::move(error_handler)
     );
     auto future = state->get_future();
-    state->start();
-
-    return Future<T>(std::move(future), [weak_state = std::weak_ptr<State>(state)]() {
+    Future<T> result(std::move(future), [weak_state = std::weak_ptr<State>(state)]() {
         if (auto state = weak_state.lock()) {
             state->cancel();
         }
     });
+
+    // start() assumes cleanup responsibility, including thread-start failure.
+    handle_guard.release();
+    state->start();
+    return result;
 }
