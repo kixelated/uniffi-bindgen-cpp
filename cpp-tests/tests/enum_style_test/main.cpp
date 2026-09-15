@@ -16,5 +16,10 @@ int main() {
     ASSERT_EQ(repeated.first, enum_style_test::SimpleEnum::VARIANT_ONE);
     ASSERT_EQ(repeated.second, enum_style_test::SimpleEnum::VARIANT_TWO);
 
+    enum_style_test::OptionalEnumDefault optional_enum_default;
+    ASSERT_EQ(optional_enum_default.value, enum_style_test::SimpleEnum::VARIANT_ONE);
+    auto roundtripped = enum_style_test::roundtrip_optional_enum_default(optional_enum_default);
+    ASSERT_EQ(roundtripped.value, enum_style_test::SimpleEnum::VARIANT_ONE);
+
     return 0;
 }

@@ -287,9 +287,9 @@ pub(crate) fn literal_cpp(
     };
 
     match literal {
-        Literal::Enum(name, _) => Ok(format!(
+        Literal::Enum(name, type_) => Ok(format!(
             "{}::{}",
-            as_ct.as_codetype().type_label(ci),
+            CppCodeOracle.find(type_).type_label(ci),
             CppCodeOracle.enum_variant_name(&name, enum_style),
         )),
         _ => Ok(as_ct.as_codetype().literal(literal, ci)),

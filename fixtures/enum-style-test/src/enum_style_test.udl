@@ -17,6 +17,10 @@ dictionary RepeatedDependencies {
     SimpleEnum second;
 };
 
+dictionary OptionalEnumDefault {
+    SimpleEnum? value = "VariantOne";
+};
+
 namespace enum_style_test {
     SimpleEnum get_simple_enum();
     void set_simple_enum(SimpleEnum e);
@@ -25,4 +29,5 @@ namespace enum_style_test {
     void set_complex_enum(ComplexEnum e);
 
     RepeatedDependencies roundtrip_repeated_dependencies(RepeatedDependencies value);
+    OptionalEnumDefault roundtrip_optional_enum_default(OptionalEnumDefault value);
 };
