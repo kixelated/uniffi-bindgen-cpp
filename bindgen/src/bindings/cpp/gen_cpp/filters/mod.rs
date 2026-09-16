@@ -273,12 +273,12 @@ pub(crate) fn object_names(obj: &Object) -> Result<(String, String)> {
 }
 
 pub(crate) fn literal_cpp(
-    default: &DefaultValue,
+    default_value: &DefaultValue,
     as_ct: &impl AsCodeType,
     enum_style: &EnumStyle,
     ci: &ComponentInterface,
 ) -> Result<String> {
-    let literal = match default {
+    let literal = match default_value {
         DefaultValue::Default => return Ok("{}".into()),
         DefaultValue::Literal(Literal::Some { inner }) => {
             return literal_cpp(inner, as_ct, enum_style, ci)
