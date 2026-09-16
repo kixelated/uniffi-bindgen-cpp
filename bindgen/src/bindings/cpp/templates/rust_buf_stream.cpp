@@ -47,8 +47,9 @@ struct RustStream: std::basic_iostream<char> {
 private:
     // Avoid platform-specific endian APIs while retaining C++17 compatibility.
     static bool native_byte_order_is_little_endian() {
-        const uint16_t value = 1;
-        return *reinterpret_cast<const unsigned char *>(&value) == 1;
+        const std::uint16_t value = 1;
+        const auto *bytes = reinterpret_cast<const unsigned char *>(&value);
+        return bytes[0] == 1;
     }
 
     RustStreamBuffer streambuf;

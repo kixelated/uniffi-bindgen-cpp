@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <cstdlib>
 #include <memory>
