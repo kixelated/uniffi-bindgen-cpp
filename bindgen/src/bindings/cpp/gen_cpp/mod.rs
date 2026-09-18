@@ -171,19 +171,36 @@ impl<'a> CppWrapperHeader<'a> {
                 // We take into account only the Record and Enum types, as they are the
                 // only types that can have member variables that reference other structures
                 match type_ {
-                    Type::Record { name, .. } => self
-                        .ci
-                        .get_record_definition(name.as_str())
-                        .map(|record| (name, record.iter_types())),
-                    Type::Enum { name, .. } => self
-                        .ci
-                        .get_enum_definition(name.as_str())
-                        .map(|enum_| (name, enum_.iter_types())),
+                    Type::Record { name, .. } => {
+                        self.ci.get_record_definition(name.as_str()).map(|record| {
+                            (
+                                name,
+                                record
+                                    .fields()
+                                    .iter()
+                                    .flat_map(Field::iter_types)
+                                    .collect::<Vec<_>>(),
+                            )
+                        })
+                    }
+                    Type::Enum { name, .. } => {
+                        self.ci.get_enum_definition(name.as_str()).map(|enum_| {
+                            (
+                                name,
+                                enum_
+                                    .variants()
+                                    .iter()
+                                    .flat_map(Variant::iter_types)
+                                    .collect::<Vec<_>>(),
+                            )
+                        })
+                    }
                     _ => None,
                 }
             })
             .flat_map(|(name, types)| {
                 types
+                    .into_iter()
                     .filter_map(type_name)
                     .map(|field_name| DependencyLink {
                         prec: field_name,
