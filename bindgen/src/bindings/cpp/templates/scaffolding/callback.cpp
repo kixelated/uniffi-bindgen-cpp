@@ -11,11 +11,10 @@ class {{ iface.name() }}Proxy: public {{ iface.name() }} {
             ~{{ iface.name() }}Proxy() override {
                 ForeignCallback *callback_stub = reinterpret_cast<ForeignCallback *>({{ ffi_converter_name|class_name }}::fn_handle.load());
 
-                RustBuffer out_buf = {
-                    .capacity = 0,
-                    .len = 0,
-                    .data = nullptr,
-                };
+                RustBuffer out_buf{};
+                out_buf.capacity = 0;
+                out_buf.len = 0;
+                out_buf.data = nullptr;
 
                 callback_stub(this->handle, 0, nullptr, 0, &out_buf);
 
@@ -33,11 +32,10 @@ class {{ iface.name() }}Proxy: public {{ iface.name() }} {
                     throw std::runtime_error("callback stub not initialized, this indicates a bug in the generated code");
                 }
 
-                RustBuffer out_buf = {
-                    .capacity = 0,
-                    .len = 0,
-                    .data = nullptr,
-                };
+                RustBuffer out_buf{};
+                out_buf.capacity = 0;
+                out_buf.len = 0;
+                out_buf.data = nullptr;
 
                 int32_t size = 0;
                 {% for arg in m.arguments() %}
@@ -131,5 +129,3 @@ int32_t {{ ffi_converter_name|class_name }}::allocation_size(const {{ type_name 
 }
 
 std::atomic<uint64_t> {{ ffi_converter_name|class_name }}::fn_handle = 0;
-
-

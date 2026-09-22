@@ -74,7 +74,7 @@ RustBuffer {{ ffi_converter_name }}::lower(const {{ type_name }} &val) {
     case {{ loop.index }}:
         return {{ type_name }}::{{ variant|variant_name(config.enum_style) }} {
             {%- for field in variant.fields() %}
-            .{% call macros::field_name(field, loop.index) %} = {{ field|read_fn }}(stream),
+            {{ field|read_fn }}(stream),
             {%- endfor %}
         };
         {% endfor %}

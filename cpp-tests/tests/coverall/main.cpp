@@ -261,7 +261,10 @@ void test_interface_in_dicts() {
     auto coveralls = coverall::Coveralls::init("test_interface_in_dicts");
 
     coveralls->add_patch(coverall::Patch::init(coverall::Color::kRed));
-    coveralls->add_repair(coverall::Repair {.when = std::chrono::system_clock::now(), .patch = coverall::Patch::init(coverall::Color::kGreen)});
+    coverall::Repair repair;
+    repair.when = std::chrono::system_clock::now();
+    repair.patch = coverall::Patch::init(coverall::Color::kGreen);
+    coveralls->add_repair(repair);
     ASSERT_EQ(2, coveralls->get_repairs().size());
 }
 
@@ -315,7 +318,7 @@ void test_dict_with_non_string_keys() {
 
 void test_return_only_dict() {
     auto d = coverall::ReturnOnlyDict{
-        .e = std::make_shared<coverall::coverall_flat_error::TooManyVariants>()
+        std::make_shared<coverall::coverall_flat_error::TooManyVariants>()
     };
     EXPECT_EXCEPTION(coverall::try_input_return_only_dict(d), std::runtime_error);
 }

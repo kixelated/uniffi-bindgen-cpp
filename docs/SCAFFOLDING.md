@@ -34,7 +34,7 @@ This file should be included once in the C++ library, and it will contain all of
 
 To ensure that the generated code is able to interface with the target C++ library, the following guidelines should be followed:
 
-- The library should be compiled with C++20 or later.
+- The library should be compiled with C++17 or later.
 - When exposing a struct or class, all of the members mentioned in the UDL file should be public.
 - For object types, all constructors mentioned in the UDL file should have a matching public constructor in the C++ library.
 - When exposing callback interfaces, it is recommended to not have any processing-intensive or global data modifying logic in the constructors and destructors of the backing C++ class, as due to the way uniffi internally handles callback interfaces, callback instances may be dynamically constructed multiple times during the runtime of the application.
@@ -61,7 +61,7 @@ struct Handle {
 
 struct UniffiCustomTypeConverterHandle {
     static Handle into_custom(uint64_t val) {
-        Handle handle = Handle { .inner = val } // or some other more intricate logic
+        Handle handle{val}; // or some other more intricate logic
 
         return handle;
     }
