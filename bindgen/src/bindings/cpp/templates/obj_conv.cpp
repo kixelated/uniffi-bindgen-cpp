@@ -12,28 +12,37 @@
 }
 {% endif %}
 
-{{ type_name }} {{ ffi_converter_name }}::lift(void *ptr) {
-    return {{ type_name }}(new {{ impl_class_name }}(ptr));
+{{ type_name }} {{ ffi_converter_name }}::lift(uint64_t handle) {
+    {%- if obj.has_callback_interface() %}
+    if ((handle & 1) == 1) {
+        auto obj = handle_map.at(handle);
+        handle_map.erase(handle);
+        return obj;
+    }
+    {%- endif %}
+    return {{ type_name }}(new {{ impl_class_name }}(handle));
 }
 
-void *{{ ffi_converter_name }}::lower(const {{ type_name }} &obj) {
+uint64_t {{ ffi_converter_name }}::lower(const {{ type_name }} &obj) {
     {%- if obj.has_callback_interface() %}
-    auto ptr = handle_map.insert(obj);
-    return reinterpret_cast<void*>(ptr);
+    if (auto rust_obj = std::dynamic_pointer_cast<{{ impl_class_name }}>(obj)) {
+        return rust_obj->_uniffi_internal_clone_pointer();
+    }
+    return handle_map.insert(obj);
     {%- else %}
     return reinterpret_cast<{{ impl_class_name}}*>(obj.get())->_uniffi_internal_clone_pointer();
     {%- endif %}
 }
 
 {{ type_name }} {{ ffi_converter_name }}::read(RustStream &stream) {
-    std::uintptr_t ptr;
-    stream >> ptr;
+    uint64_t handle;
+    stream >> handle;
 
-    return {{ ffi_converter_name}}::lift(reinterpret_cast<void *>(ptr));
+    return {{ ffi_converter_name}}::lift(handle);
 }
 
 void {{ ffi_converter_name }}::write(RustStream &stream, const {{ type_name }} &obj) {
-    stream << reinterpret_cast<std::uintptr_t>({{ ffi_converter_name }}::lower(obj));
+    stream << {{ ffi_converter_name }}::lower(obj);
 }
 
 uint64_t {{ ffi_converter_name }}::allocation_size(const {{ type_name }} &) {

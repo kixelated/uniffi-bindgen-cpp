@@ -25,6 +25,47 @@
         {%- call arg_list_lowered(func) -%})
 {%- endmacro %}
 
+{% macro rust_call_with_self(func, self_type) -%}
+    uniffi::rust_call(
+        {{ func.ffi_func().name() }},
+{%- match func.throws_type() %}
+{% when Some with (e) %}
+        uniffi::{{ e|ffi_error_converter_name }}::lift,
+{%- else %}
+        nullptr,
+{%- endmatch %}
+        uniffi::{{ self_type|lower_fn }}(*this)
+{%- if !func.arguments().is_empty() %}, {% else %}{% endif %}
+        {%- call arg_list_lowered(func) -%})
+{%- endmacro %}
+
+{% macro rust_call_with_value(func, self_type) -%}
+    uniffi::rust_call(
+        {{ func.ffi_func().name() }},
+{%- match func.throws_type() %}
+{% when Some with (e) %}
+        uniffi::{{ e|ffi_error_converter_name }}::lift,
+{%- else %}
+        nullptr,
+{%- endmatch %}
+        uniffi::{{ self_type|lower_fn }}(_uniffi_self)
+{%- if !func.arguments().is_empty() %}, {% else %}{% endif %}
+        {%- call arg_list_lowered(func) -%})
+{%- endmacro %}
+
+{% macro rust_call_with_self_and_other(func, self_type) -%}
+    uniffi::rust_call(
+        {{ func.ffi_func().name() }},
+{%- match func.throws_type() %}
+{% when Some with (e) %}
+        uniffi::{{ e|ffi_error_converter_name }}::lift,
+{%- else %}
+        nullptr,
+{%- endmatch %}
+        uniffi::{{ self_type|lower_fn }}(*this),
+        uniffi::{{ self_type|lower_fn }}(other))
+{%- endmacro %}
+
 {% macro param_list(func) %}
 {%- for arg in func.arguments() -%}
 {{ arg|parameter(ci) }}
@@ -42,7 +83,7 @@ v{{- field_num -}}
 
 {% macro arg_list_lowered(func) %}
 {%- for arg in func.arguments() -%}
-uniffi::{{ arg|lower_fn }}({{ arg.name()|var_name }})
+uniffi::{{ arg|lower_fn }}({{ arg.as_type()|cpp_deref(ci) }}{{ arg.name()|var_name }})
 {%- if !loop.last -%}, {% endif -%}
 {% endfor -%}
 {% endmacro %}

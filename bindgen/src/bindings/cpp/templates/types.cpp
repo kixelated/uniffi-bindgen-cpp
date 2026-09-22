@@ -10,6 +10,23 @@
 {%- match typ %}
 {%- when Type::Object { module_path, name, imp } %}
 {% include "obj.cpp" %}
+{%- when Type::Record { module_path, name } %}
+{%- let rec = ci.get_record_definition(name).unwrap() %}
+{%- let methods = rec.methods() %}
+{%- let uniffi_trait_methods = rec.uniffi_trait_methods() %}
+{% include "value_methods.cpp" %}
+{%- when Type::Enum { name, module_path } %}
+{%- let e = ci.get_enum_definition(name).unwrap() %}
+{%- let methods = e.methods() %}
+{%- let uniffi_trait_methods = e.uniffi_trait_methods() %}
+{%- if ci.is_name_used_as_error(name) %}
+{%- let type_name = typ|canonical_name %}
+{% include "value_methods.cpp" %}
+{%- else if e.is_flat() %}
+{% include "flat_enum_methods.cpp" %}
+{%- else %}
+{% include "value_methods.cpp" %}
+{%- endif %}
 {%- else %}
 {%- endmatch %}
 {% endfor ~%}

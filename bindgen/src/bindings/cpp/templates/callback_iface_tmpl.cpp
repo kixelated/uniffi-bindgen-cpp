@@ -42,6 +42,12 @@ void {{ trait_impl }}::uniffi_free(uint64_t uniffi_handle) {
     {{ ffi_converter_name }}::handle_map.erase(uniffi_handle);
 }
 
+uint64_t {{ trait_impl }}::uniffi_clone(uint64_t uniffi_handle) {
+    return {{ ffi_converter_name }}::handle_map.insert(
+        {{ ffi_converter_name }}::handle_map.at(uniffi_handle)
+    );
+}
+
 void {{ trait_impl }}::init() {
     {{ ffi_init_callback.name() }}(vtable);
 }

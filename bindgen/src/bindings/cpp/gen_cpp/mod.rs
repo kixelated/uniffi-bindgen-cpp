@@ -171,19 +171,36 @@ impl<'a> CppWrapperHeader<'a> {
                 // We take into account only the Record and Enum types, as they are the
                 // only types that can have member variables that reference other structures
                 match type_ {
-                    Type::Record { name, .. } => self
-                        .ci
-                        .get_record_definition(name.as_str())
-                        .map(|record| (name, record.iter_types())),
-                    Type::Enum { name, .. } => self
-                        .ci
-                        .get_enum_definition(name.as_str())
-                        .map(|enum_| (name, enum_.iter_types())),
+                    Type::Record { name, .. } => {
+                        self.ci.get_record_definition(name.as_str()).map(|record| {
+                            (
+                                name,
+                                record
+                                    .fields()
+                                    .iter()
+                                    .flat_map(Field::iter_types)
+                                    .collect::<Vec<_>>(),
+                            )
+                        })
+                    }
+                    Type::Enum { name, .. } => {
+                        self.ci.get_enum_definition(name.as_str()).map(|enum_| {
+                            (
+                                name,
+                                enum_
+                                    .variants()
+                                    .iter()
+                                    .flat_map(Variant::iter_types)
+                                    .collect::<Vec<_>>(),
+                            )
+                        })
+                    }
                     _ => None,
                 }
             })
             .flat_map(|(name, types)| {
                 types
+                    .into_iter()
                     .filter_map(type_name)
                     .map(|field_name| DependencyLink {
                         prec: field_name,
@@ -193,9 +210,18 @@ impl<'a> CppWrapperHeader<'a> {
             .collect::<TopologicalSort<_>>();
 
         let mut sorted: Vec<Type> = Vec::new();
+        let mut emitted_names = BTreeSet::new();
         while !definition_topology.peek_all().is_empty() {
-            let list = definition_topology.pop_all();
+            let mut list = definition_topology.pop_all();
+            list.sort();
             for name in list {
+                // TopologicalSort preserves duplicate dependency links.  A record or
+                // rich enum can mention the same named type more than once, causing
+                // that type to be returned once per link.  Definitions, however,
+                // must be emitted exactly once.
+                if !emitted_names.insert(name) {
+                    continue;
+                }
                 match self.ci.get_type(name) {
                     // External types are defined in their own namespace's header with their own
                     // converters declared, which we `#include`. They must not enter the local
@@ -214,7 +240,7 @@ impl<'a> CppWrapperHeader<'a> {
         }
 
         let rest = types
-            .filter(|&t| !sorted.contains(t))
+            .filter(|t| type_name(t).map_or(true, |name| !emitted_names.contains(name)))
             .cloned()
             .collect::<BTreeSet<_>>();
 

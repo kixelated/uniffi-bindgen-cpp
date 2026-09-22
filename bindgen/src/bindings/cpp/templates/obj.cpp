@@ -14,9 +14,9 @@ namespace uniffi {
 {%- endif %}
 
 
-{{ impl_class_name }}::{{ impl_class_name }}(void *ptr): instance(ptr) {}
+{{ impl_class_name }}::{{ impl_class_name }}(uint64_t handle): instance(handle) {}
 
-{{ impl_class_name }}::{{ impl_class_name }}(const {{ impl_class_name }} &other) : instance(nullptr) {
+{{ impl_class_name }}::{{ impl_class_name }}(const {{ impl_class_name }} &other) : instance(0) {
     if (other.instance) {
         instance = other._uniffi_internal_clone_pointer();
     }
@@ -30,21 +30,26 @@ namespace uniffi {
 
 {% match obj.primary_constructor() -%}
 {%- when Some with (ctor) %}
+{%- if !ctor.is_async() %}
 {{ type_name }} {{ impl_class_name }}::init({% call macros::param_list(ctor) %}) {
     return {{ type_name }}(
         new {{ impl_class_name }}({%- call macros::rust_call(ctor) -%})
     );
 }
+{%- endif %}
 {% else -%}
 {% endmatch -%}
 
 {% for ctor in obj.alternate_constructors() %}
+{%- if !ctor.is_async() %}
 {{ type_name }} {{ impl_class_name }}::{{ ctor.name() }}({% call macros::param_list(ctor) %}) {
     return {{ type_name }}(new {{ impl_class_name }}({% call macros::rust_call(ctor) %}));
 }
+{%- endif %}
 {% endfor %}
 
 {%- for method in obj.methods() %}
+{%- if !method.is_async() %}
 {% match method.return_type() %}{% when Some with (return_type) %}{{ return_type|type_name(ci) }} {% else %}void {% endmatch -%}
 {{ impl_class_name }}::{{ method.name()|fn_name }}({% call macros::param_list(method) %}) {
     auto ptr = this->_uniffi_internal_clone_pointer();
@@ -55,6 +60,7 @@ namespace uniffi {
     {% call macros::rust_call_with_prefix("ptr", method) -%};
     {%- endmatch %}
 }
+{%- endif %}
 {%- endfor %}
 
 {{ impl_class_name }}::~{{ impl_class_name }}() {
@@ -65,7 +71,7 @@ namespace uniffi {
     );
 }
 
-void *{{ impl_class_name }}::_uniffi_internal_clone_pointer() const {
+uint64_t {{ impl_class_name }}::_uniffi_internal_clone_pointer() const {
     return uniffi::rust_call(
         {{ obj.ffi_object_clone().name() }},
         nullptr,
@@ -93,6 +99,10 @@ bool {{ impl_class_name }}::ne(const {{ type_name }} &other) const {
 {% when UniffiTrait::Hash { hash } %}
 uint64_t {{ impl_class_name }}::hash() const {
     return uniffi::{{ Type::UInt64.borrow()|lift_fn }}({% call macros::rust_call_with_prefix("this->_uniffi_internal_clone_pointer()", hash) %});
+}
+{% when UniffiTrait::Ord { cmp } %}
+int8_t {{ impl_class_name }}::cmp(const {{ type_name }} &other) const {
+    return uniffi::{{ Type::Int8.borrow()|lift_fn }}({% call macros::rust_call_with_prefix("this->_uniffi_internal_clone_pointer()", cmp) %});
 }
 {% endmatch %}
 {%- endfor %}

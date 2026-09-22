@@ -447,7 +447,7 @@ void test_path() {
     ASSERT_EQ(2, traits[1]->strong_count());
 
     traits[0]->set_parent(traits[1]);
-    ASSERT_EQ(2, traits[1]->strong_count());
+    ASSERT_EQ(3, traits[1]->strong_count());
 
     ASSERT_EQ(std::vector<std::string> {"node-2"} , coverall::ancestor_names(traits[0]));
     ASSERT_EQ(std::vector<std::string> {} , coverall::ancestor_names(traits[1]));

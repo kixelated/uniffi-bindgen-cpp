@@ -1,3 +1,17 @@
+#### v0.10.0+v0.31.2
+
+----
+- Core: Update bindgen to UniFFI v0.31.2
+- Core: Objects are passed across the FFI as `uint64_t` handles instead of raw pointers
+- Core: Trait interfaces distinguish Rust- and C++-implemented objects when lifting and lowering, and implement the new `uniffi_clone` vtable entry
+- Core: Support methods and exported `Display`/`Debug`/`Eq`/`Hash`/`Ord` traits on records, enums and errors (flat enums get free functions)
+- Core: Support the `Ord` trait (`cmp`) on objects
+- Core: Support tuple-style enum variants with unnamed fields
+- Core: Support `#[uniffi(default)]` without a literal using C++ value initialization (`{}`)
+- Core: Fix optional enum default values rendering with the wrong type
+- Core: Fix duplicate type definitions when a record or enum references the same type more than once
+- Core: Async functions, constructors and methods are omitted with a warning instead of aborting generation; async callback interfaces are still unsupported
+
 #### v0.9.0+v0.29.4
 
 ----

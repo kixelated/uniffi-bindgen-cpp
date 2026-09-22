@@ -5,7 +5,7 @@ use std::{fmt::Debug, fs};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use uniffi_bindgen::{
-    backend::Literal, BindingGenerator, Component, ComponentInterface, GenerationSettings,
+    interface::Literal, BindingGenerator, Component, ComponentInterface, GenerationSettings,
 };
 
 use self::gen_cpp::{generate_cpp_bindings, Bindings};
@@ -93,9 +93,16 @@ impl BindingGenerator for CppBindingGenerator {
         components: &[uniffi_bindgen::Component<Self::Config>],
     ) -> Result<()> {
         for Component { ci, config, .. } in components {
-            if ci.has_async_fns() || ci.has_async_callback_interface_definition() {
+            if ci.has_async_callback_interface_definition() {
                 unimplemented!(
-                    "Cpp bindgen does not support async functions! Namespace: {}",
+                    "Cpp bindgen does not support async callback interfaces! Namespace: {}",
+                    ci.namespace()
+                );
+            }
+
+            if ci.has_async_fns() {
+                eprintln!(
+                    "Warning: omitting unsupported async functions from namespace: {}",
                     ci.namespace()
                 );
             }
