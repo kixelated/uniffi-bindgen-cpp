@@ -66,9 +66,61 @@ void test_proc_methods() {
     ASSERT_NE(trait->to_debug_string(), trait2->to_debug_string());
 }
 
+void test_record_trait_methods() {
+    trait_methods::TraitRecord first { "same", 1 };
+    trait_methods::TraitRecord second { "same", 2 };
+    trait_methods::TraitRecord different { "different", 1 };
+
+    ASSERT_EQ(first.to_debug_string(), "TraitRecord { s: \"same\", i: 1 }");
+    ASSERT_TRUE(first.eq(second));
+    ASSERT_FALSE(first.ne(second));
+    ASSERT_FALSE(first.eq(different));
+    ASSERT_EQ(first.hash(), second.hash());
+    ASSERT_EQ(first.cmp(second), 0);
+}
+
+void test_enum_trait_methods() {
+    trait_methods::TraitEnum first = trait_methods::TraitEnum::kS { "one" };
+    trait_methods::TraitEnum second = trait_methods::TraitEnum::kS { "two" };
+    trait_methods::TraitEnum integer = trait_methods::TraitEnum::kI { 1 };
+
+    ASSERT_EQ(first.to_string(), "TraitEnum::S(\"one\")");
+    ASSERT_EQ(first.to_debug_string(), "S(\"one\")");
+    ASSERT_TRUE(first.eq(second));
+    ASSERT_EQ(first.hash(), second.hash());
+    ASSERT_TRUE(first.cmp(integer) < 0);
+
+    auto flat = trait_methods::get_flat_trait_enum(0);
+    ASSERT_EQ(trait_methods::to_string(flat), "FlatTraitEnum::flat-alpha");
+    ASSERT_EQ(trait_methods::to_debug_string(flat), "Alpha");
+}
+
+void test_error_trait_methods() {
+    try {
+        trait_methods::throw_api_failure(0);
+    } catch (const trait_methods::ApiFailure &error) {
+        ASSERT_EQ(error.to_string(), "api network issue");
+        ASSERT_EQ(error.to_debug_string(), "NetworkIssue");
+        static_cast<void>(error.hash());
+
+        try {
+            trait_methods::throw_api_failure(1);
+        } catch (const trait_methods::ApiFailure &other) {
+            ASSERT_FALSE(error.eq(other));
+            ASSERT_TRUE(error.ne(other));
+            ASSERT_TRUE(error.cmp(other) < 0);
+            return;
+        }
+    }
+    throw std::runtime_error("Expected ApiFailure");
+}
+
 int main() {
     test_trait_methods();
     test_proc_methods();
+    test_record_trait_methods();
+    test_enum_trait_methods();
+    test_error_trait_methods();
 
     return 0;
 }

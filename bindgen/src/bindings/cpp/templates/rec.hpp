@@ -8,4 +8,8 @@ struct {{ type_name }} {
     {%- when Some with (literal) %} = {{ literal|literal_cpp(field, config.enum_style, ci) }};{%- else -%};
     {%- endmatch %}
     {%- endfor %}
+
+    {%- let methods = rec.methods() %}
+    {%- let uniffi_trait_methods = rec.uniffi_trait_methods() %}
+    {% include "value_methods.hpp" %}
 };

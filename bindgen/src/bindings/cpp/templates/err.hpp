@@ -18,6 +18,11 @@ struct {{ class_name }}: std::runtime_error {
         throw *this;
     }
 
+    {%- let methods = e.methods() %}
+    {%- let uniffi_trait_methods = e.uniffi_trait_methods() %}
+    {%- let type_name = class_name %}
+    {% include "value_methods.hpp" %}
+
 protected:
     virtual int32_t get_variant_idx() const {
         return 0;
