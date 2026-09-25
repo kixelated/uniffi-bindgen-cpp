@@ -2,9 +2,10 @@ name: C++
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "kixelated/*" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
