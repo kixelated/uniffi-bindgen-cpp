@@ -1,4 +1,6 @@
-{%- if e.is_flat() %}
+{%- let as_struct = name|enum_struct(ci) %}
+{%- let flat_error = e.is_flat() && as_struct %}
+{%- if !as_struct %}
 {{ type_name }} {{ ffi_converter_name }}::lift(RustBuffer buf) {
     auto stream = RustStream(&buf);
     auto ret = {{ ffi_converter_name }}::read(stream);
@@ -27,7 +29,7 @@ RustBuffer {{ ffi_converter_name }}::lower(const {{ type_name }} &val) {
         return {{ type_name }}::{{ variant|variant_name(config.enum_style) }};
         {% endfor %}
     default:
-        throw std::runtime_error("No matching {{ type_name }} variant");
+        {% call macros::fail("No matching " ~ type_name ~ " variant") %}
     }
 }
 
@@ -39,7 +41,7 @@ void {{ ffi_converter_name }}::write(RustStream &stream, const {{ type_name }} &
         break;
         {% endfor %}
     default:
-        throw std::runtime_error("No matching {{ type_name }} variant");
+        {% call macros::fail("No matching " ~ type_name ~ " variant") %}
     }
 }
 
@@ -76,10 +78,13 @@ RustBuffer {{ ffi_converter_name }}::lower(const {{ type_name }} &val) {
             {%- for field in variant.fields() %}
             {{ field|read_fn }}(stream),
             {%- endfor %}
+            {%- if flat_error %}
+            {{ Type::String.borrow()|read_fn }}(stream),
+            {%- endif %}
         };
         {% endfor %}
     default:
-        throw std::runtime_error("No matching {{ type_name }} variant");
+        {% call macros::fail("No matching " ~ type_name ~ " variant") %}
     }
 }
 
@@ -95,6 +100,9 @@ void {{ ffi_converter_name }}::write(RustStream &stream, const {{ type_name }} &
             {%- for field in variant.fields() %}
             {{ field|write_fn }}(stream, {{ field.as_type()|cpp_deref(ci) }}arg.{% call macros::field_name(field, loop.index) %});
             {%- endfor %}
+            {%- if flat_error %}
+            {{ Type::String.borrow()|write_fn }}(stream, arg.message);
+            {%- endif %}
         }
         {%- endfor %}
         {%- if e.variants().len() != 0 %}
@@ -117,6 +125,9 @@ uint64_t {{ ffi_converter_name }}::allocation_size(const {{ type_name|class_name
             {%- for field in variant.fields() %}
             size += {{ field|allocation_size_fn }}({{ field.as_type()|cpp_deref(ci) }}arg.{% call macros::field_name(field, loop.index) %});
             {%- endfor %}
+            {%- if flat_error %}
+            size += {{ Type::String.borrow()|allocation_size_fn }}(arg.message);
+            {%- endif %}
             return size;
         }
         {%- endfor %}

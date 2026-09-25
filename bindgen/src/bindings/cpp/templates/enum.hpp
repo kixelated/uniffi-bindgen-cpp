@@ -1,6 +1,8 @@
 {%- let ffi_converter_name = typ|ffi_converter_name %}
 {%- let ffi_converter_name = ffi_converter_name|class_name %}
-{%- if e.is_flat() %}
+{%- let as_struct = name|enum_struct(ci) %}
+{%- let flat_error = e.is_flat() && as_struct %}
+{%- if !as_struct %}
 {% call macros::docstring(e, 0) %}
 enum class {{ type_name }}: int32_t {
     {%- for variant in e.variants() %}
@@ -29,6 +31,9 @@ struct {{ type_name }} {
         {%- when Some with (literal) %} = {{ literal|literal_cpp(field, config.enum_style, ci) }};{%- else -%};
         {%- endmatch %}
         {%- endfor %}
+        {%- if flat_error %}
+        std::string message;
+        {%- endif %}
     };
     {%- endfor %}
 

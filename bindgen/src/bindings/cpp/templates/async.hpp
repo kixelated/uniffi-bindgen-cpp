@@ -1,3 +1,15 @@
+{%- if config.expected() %}
+namespace detail {
+
+// Reports a bug the expected style has no error value for, such as a Rust panic, and aborts.
+[[noreturn]] inline void fatal(const char *message) noexcept {
+    std::fprintf(stderr, "uniffi: %s\n", message);
+    std::fflush(stderr);
+    std::abort();
+}
+
+} // namespace detail
+{%- else %}
 class AsyncCancelledError: public std::runtime_error {
 public:
     AsyncCancelledError(): std::runtime_error("UniFFI async call cancelled") {}
@@ -7,6 +19,7 @@ class AsyncDispatcherError: public std::runtime_error {
 public:
     AsyncDispatcherError(): std::runtime_error("UniFFI async dispatcher rejected a continuation") {}
 };
+{%- endif %}
 
 using AsyncTask = std::function<void()>;
 using AsyncDispatcher = std::function<bool(AsyncTask)>;
@@ -27,7 +40,12 @@ public:
 
     bool dispatch(AsyncTask task) {
         std::lock_guard<std::mutex> guard(mutex_);
+        {%- if config.expected() %}
+        // Unbounded: a rejected poll drops its future, which only shutdown may do.
+        if (!accepting_) {
+        {%- else %}
         if (!accepting_ || tasks_.size() >= MAX_QUEUED_TASKS) {
+        {%- endif %}
             return false;
         }
         tasks_.push_back(std::move(task));
@@ -59,16 +77,21 @@ private:
                 task = std::move(tasks_.front());
                 tasks_.pop_front();
             }
+            {%- if config.expected() %}
+            task();
+            {%- else %}
             try {
                 task();
             } catch (...) {
                 // Generated continuation tasks are noexcept. Protect the worker from
                 // consumer-provided tasks that violate that contract.
             }
+            {%- endif %}
         }
     }
-
+{% if !config.expected() %}
     static constexpr std::size_t MAX_QUEUED_TASKS = 1024;
+{%- endif %}
     std::mutex mutex_;
     std::condition_variable ready_;
     std::deque<AsyncTask> tasks_;
@@ -111,15 +134,41 @@ inline bool dispatch_async(AsyncTask task) noexcept {
         state.started = true;
         dispatch = state.dispatch;
     }
+    {%- if config.expected() %}
+    return dispatch(std::move(task));
+    {%- else %}
     try {
         return dispatch(std::move(task));
     } catch (...) {
         return false;
     }
+    {%- endif %}
 }
 
 } // namespace detail
 
+{%- if config.expected() %}
+// Installs the process-wide continuation dispatcher. The dispatcher returns true only
+// when it has accepted the task; rejecting a task drops the future it would have polled.
+// shutdown must stop accepting work, drain accepted tasks, and return only when they can
+// no longer call generated code. Aborts when either function is empty, or when called
+// after shutdown or after the first async call.
+inline void set_async_dispatcher(
+    AsyncDispatcher dispatcher,
+    AsyncDispatcherShutdown shutdown
+) noexcept {
+    if (!dispatcher || !shutdown) {
+        detail::fatal("UniFFI async dispatcher and shutdown function must not be empty");
+    }
+    auto &state = detail::async_dispatcher_state();
+    std::lock_guard<std::mutex> guard(state.mutex);
+    if (!state.accepting) {
+        detail::fatal("UniFFI async dispatcher has already shut down");
+    }
+    if (state.started) {
+        detail::fatal("UniFFI async dispatcher must be installed before the first async call");
+    }
+{%- else %}
 // Installs the process-wide continuation dispatcher. The dispatcher returns true only
 // when it has accepted the task. shutdown must stop accepting work, drain accepted
 // tasks, and return only when they can no longer call generated code.
@@ -142,6 +191,7 @@ inline void set_async_dispatcher(
             "UniFFI async dispatcher must be installed before the first async call"
         );
     }
+{%- endif %}
     state.dispatch = std::move(dispatcher);
     state.shutdown = std::move(shutdown);
 }
@@ -164,15 +214,22 @@ inline void shutdown_async_dispatcher() noexcept {
         state.shutdown = {};
     }
     if (shutdown) {
+        {%- if config.expected() %}
+        shutdown();
+        {%- else %}
         try {
             shutdown();
         } catch (...) {
         }
+        {%- endif %}
     }
     shutdown = {};
     dispatch = {};
 }
 
+{%- if config.expected() %}
+{% include "async_expected.hpp" %}
+{%- else %}
 // A C++17-compatible asynchronous operation returned by foreign implementations of
 // UniFFI async callback interfaces. Implementations arrange their own scheduling. The
 // generated bridge accepts the first success or failure callback and ignores later
@@ -518,3 +575,4 @@ private:
     std::shared_ptr<detail::FutureCompletionState<T>> state_;
     std::function<void()> cancel_;
 };
+{%- endif %}

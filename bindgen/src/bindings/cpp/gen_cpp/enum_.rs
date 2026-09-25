@@ -1,7 +1,8 @@
 use uniffi_bindgen::{interface::Literal, ComponentInterface};
 
 use crate::bindings::cpp::{
-    gen_cpp::filters::external_namespace_prefix, gen_cpp::filters::CppCodeOracle, CodeType,
+    gen_cpp::filters::{external_namespace_prefix, is_error_class, CppCodeOracle},
+    CodeType,
 };
 #[derive(Debug)]
 pub(crate) struct EnumCodeType {
@@ -17,7 +18,7 @@ impl EnumCodeType {
 
 impl CodeType for EnumCodeType {
     fn type_label(&self, ci: &ComponentInterface) -> String {
-        if ci.is_name_used_as_error(&self.id) {
+        if is_error_class(ci, &self.id) {
             format!(
                 "std::shared_ptr<{}{}>",
                 external_namespace_prefix(ci, &self.module_path),

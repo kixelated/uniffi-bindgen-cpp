@@ -26,7 +26,7 @@
 {%- endmacro %}
 
 {% macro rust_call_async(func, return_type) -%}
-    uniffi::rust_call_async<{{ return_type }}>(
+    uniffi::rust_call_async<{{ return_type }}{% call async_error_arg(func) %}>(
         [&]() {
             return {{ func.ffi_func().name() }}(
                 {%- call arg_list_lowered(func) -%}
@@ -47,7 +47,7 @@
 {%- endmacro %}
 
 {% macro rust_call_async_void(func) -%}
-    uniffi::rust_call_async<void>(
+    uniffi::rust_call_async<void{% call async_error_arg(func) %}>(
         [&]() {
             return {{ func.ffi_func().name() }}(
                 {%- call arg_list_lowered(func) -%}
@@ -68,7 +68,7 @@
 {%- endmacro %}
 
 {% macro rust_call_async_with_prefix(prefix, func, return_type) -%}
-    uniffi::rust_call_async<{{ return_type }}>(
+    uniffi::rust_call_async<{{ return_type }}{% call async_error_arg(func) %}>(
         [&]() {
             return {{ func.ffi_func().name() }}(
                 {{ prefix }}{% if !func.arguments().is_empty() %}, {% endif %}
@@ -90,7 +90,7 @@
 {%- endmacro %}
 
 {% macro rust_call_async_void_with_prefix(prefix, func) -%}
-    uniffi::rust_call_async<void>(
+    uniffi::rust_call_async<void{% call async_error_arg(func) %}>(
         [&]() {
             return {{ func.ffi_func().name() }}(
                 {{ prefix }}{% if !func.arguments().is_empty() %}, {% endif %}
@@ -157,4 +157,32 @@ uniffi::{{ arg|lower_fn }}({{ arg.name()|var_name }})
 
 {%- macro docstring(defn, indent_spaces) %}
 {%- call docstring_value(defn.docstring(), indent_spaces) %}
+{%- endmacro %}
+
+{#- Reports a bug: a throw under the exceptions style, an abort under the expected style. #}
+{%- macro fail(message) -%}
+{%- if config.expected() -%}
+::uniffi::detail::fatal("{{ message }}");
+{%- else -%}
+throw std::runtime_error("{{ message }}");
+{%- endif -%}
+{%- endmacro %}
+
+{#- The error type argument of an expected-style future, present when the call can fail. #}
+{%- macro async_error_arg(func) -%}
+{%- if config.expected() -%}
+{%- match func.throws_type() %}{% when Some with (e) %}, {{ e|type_name(ci) }}{% else %}{% endmatch -%}
+{%- endif -%}
+{%- endmacro %}
+
+{#- What a callable returns, given the type of its value: a future when async, and
+    `expected<T, E>` when it can fail under the expected style. #}
+{%- macro result_type(func, value_type) -%}
+{%- if func.is_async() -%}
+::uniffi::Future<{{ value_type }}{% call async_error_arg(func) %}>
+{%- else if config.expected() && func.throws_type().is_some() -%}
+::uniffi::expected<{{ value_type }}, {{ func.throws_type().unwrap()|type_name(ci) }}>
+{%- else -%}
+{{ value_type }}
+{%- endif -%}
 {%- endmacro %}

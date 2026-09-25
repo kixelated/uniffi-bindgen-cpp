@@ -12,7 +12,7 @@ use crate::bindings::cpp::{
     CodeType,
 };
 
-use super::EnumStyle;
+use super::{error_style, EnumStyle, ErrorStyle};
 
 type Result<T> = std::result::Result<T, askama::Error>;
 
@@ -216,6 +216,9 @@ impl<T: AsType> AsCodeType for T {
                 key_type,
                 value_type,
             } => Box::new(compounds::MapCodeType::new(*key_type, *value_type)),
+            // `Box<T>` only exists for scaffolding; it crosses the FFI as a plain `T`.
+            Type::Box { inner_type } => inner_type.as_codetype(),
+            Type::Set { .. } => unimplemented!("HashSet is not supported by the C++ bindings yet"),
             Type::Custom {
                 name, module_path, ..
             } => Box::new(custom::CustomCodeType::new(name, module_path)),
@@ -394,7 +397,7 @@ pub(crate) fn by_ref(ci: &ComponentInterface, arg: &Argument) -> bool {
             module_path: _,
             name,
         } => match ci.get_enum_definition(&name) {
-            Some(_enum) => _enum.is_flat(),
+            Some(_) => !is_enum_struct(ci, &name),
             None => false,
         },
         _ => true,
@@ -425,9 +428,30 @@ pub(crate) fn can_dereference_optional(type_: &Type, ci: &ComponentInterface) ->
     Ok(result)
 }
 
+/// Whether an error enum renders as an exception class held by `std::shared_ptr`. Under the
+/// expected style it is a plain value type like any other enum.
+pub(crate) fn is_error_class(ci: &ComponentInterface, name: &str) -> bool {
+    ci.is_name_used_as_error(name) && error_style() == ErrorStyle::Exceptions
+}
+
+/// Whether an enum renders as a struct holding a `std::variant` rather than an `enum class`.
+/// A flat error is a struct under the expected style because each variant carries a message.
+pub(crate) fn is_enum_struct(ci: &ComponentInterface, name: &str) -> bool {
+    let flat = ci.get_enum_definition(name).map_or(false, |e| e.is_flat());
+    !flat || (ci.is_name_used_as_error(name) && error_style() == ErrorStyle::Expected)
+}
+
+pub(crate) fn error_class(name: &str, ci: &ComponentInterface) -> Result<bool> {
+    Ok(is_error_class(ci, name))
+}
+
+pub(crate) fn enum_struct(name: &str, ci: &ComponentInterface) -> Result<bool> {
+    Ok(is_enum_struct(ci, name))
+}
+
 pub(crate) fn cpp_deref(type_: Type, ci: &ComponentInterface) -> Result<String> {
     if let Type::Enum { name, .. } = type_ {
-        if ci.is_name_used_as_error(&name) {
+        if is_error_class(ci, &name) {
             return Ok("*".to_string());
         }
     }

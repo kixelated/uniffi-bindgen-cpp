@@ -6,17 +6,19 @@ as a separate project from `uniffi-rs`, as per
 
 # How to install
 
-Minimum Rust version required to install `uniffi-bindgen-cpp` is `1.74`.
+Minimum Rust version required to install `uniffi-bindgen-cpp` is `1.91`, which UniFFI 0.32 requires.
 Newer Rust versions should also work fine.
 
 ```bash
 cargo install uniffi-bindgen-cpp --git https://github.com/NordSecurity/uniffi-bindgen-cpp --tag v0.8.1+v0.29.4
 ```
 
-For this UniFFI 0.31/async development branch, install directly from the checkout:
+This fork carries LiveKit's async support (`livekit/uniffi-0.31-async`) ported to UniFFI 0.32, plus
+the `error_style = "expected"` option. Its tags add a `-kixelated.N` pre-release so they never
+collide with upstream's:
 
 ```bash
-cargo install --path bindgen
+cargo install uniffi-bindgen-cpp --locked --git https://github.com/kixelated/uniffi-bindgen-cpp --tag v0.11.0-kixelated.1+v0.32.2
 ```
 
 # How to generate bindings

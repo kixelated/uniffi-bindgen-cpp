@@ -1,3 +1,15 @@
+#### v0.11.0-kixelated.1+v0.32.2
+
+----
+- **BREAKING** Core: Update bindgen to UniFFI v0.32.2. UniFFI 0.32 changed its metadata encoding
+  without a contract bump, so earlier generators cannot read a 0.32 library at all
+- **BREAKING** Core: Minimum Rust version is 1.91, which UniFFI 0.32 requires
+- Core: Treat `Box<T>` as a plain `T`; refuse `HashSet<T>` until it has a C++ mapping
+- Core: Add the `error_style = "expected"` option, which returns `uniffi::expected<T, E>` instead
+  of throwing, so the bindings build with exceptions disabled
+- Carries LiveKit's async support: `uniffi::Future<T>` with `get`/`wait_for`/`cancel`/`then`,
+  async callback interfaces, and a pluggable dispatcher
+
 #### v0.9.0+v0.29.4
 
 ----

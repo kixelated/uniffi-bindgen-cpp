@@ -90,6 +90,12 @@ impl BindingGenerator for CppBindingGenerator {
                 fs::write(&scaffolding_header_path, scaffolding_header)?;
                 fs::write(&header_path, header)?;
                 fs::write(&source_path, source)?;
+
+                if config.expected() {
+                    let expected = include_str!("expected.hpp")
+                        .replace("{tl_expected}", include_str!("vendor/tl_expected.hpp"));
+                    fs::write(settings.out_dir.join("uniffi_expected.hpp"), expected)?;
+                }
             }
         }
 

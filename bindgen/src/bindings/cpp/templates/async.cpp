@@ -1,5 +1,8 @@
 constexpr int8_t UNIFFI_RUST_FUTURE_POLL_READY = 0;
 constexpr int8_t UNIFFI_RUST_FUTURE_POLL_WAKE = 1;
+{%- if config.expected() %}
+{% include "async_expected.cpp" %}
+{%- else %}
 
 class ForeignFutureTaskState {
 public:
@@ -230,3 +233,4 @@ Future<T> rust_call_async(
         }
     });
 }
+{%- endif %}

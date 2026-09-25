@@ -23,7 +23,7 @@ namespace uniffi {
     }
 }
 
-{% if ci.is_name_used_as_error(name) %}
+{% if ci.is_name_used_as_error(name) && !config.expected() %}
     void {{ impl_class_name }}::throw_underlying() {
         throw *this;
     }
@@ -31,9 +31,13 @@ namespace uniffi {
 
 {% match obj.primary_constructor() -%}
 {%- when Some with (ctor) %}
-{% if ctor.is_async() %}uniffi::Future<{% endif %}{{ type_name }}{% if ctor.is_async() %}>{% endif %} {{ impl_class_name }}::init({% call macros::param_list(ctor) %}) {
+{% call macros::result_type(ctor, type_name) %} {{ impl_class_name }}::init({% call macros::param_list(ctor) %}) {
     {%- if ctor.is_async() %}
     return {% call macros::rust_call_async(ctor, type_name) %};
+    {%- else if config.expected() && ctor.throws_type().is_some() %}
+    return uniffi::lift_expected<{{ type_name }}>({% call macros::rust_call(ctor) %}, [](uint64_t handle) {
+        return {{ type_name }}(new {{ impl_class_name }}(handle));
+    });
     {%- else %}
     return {{ type_name }}(
         new {{ impl_class_name }}({%- call macros::rust_call(ctor) -%})
@@ -44,9 +48,13 @@ namespace uniffi {
 {% endmatch -%}
 
 {% for ctor in obj.alternate_constructors() %}
-{% if ctor.is_async() %}uniffi::Future<{% endif %}{{ type_name }}{% if ctor.is_async() %}>{% endif %} {{ impl_class_name }}::{{ ctor.name() }}({% call macros::param_list(ctor) %}) {
+{% call macros::result_type(ctor, type_name) %} {{ impl_class_name }}::{{ ctor.name() }}({% call macros::param_list(ctor) %}) {
     {%- if ctor.is_async() %}
     return {% call macros::rust_call_async(ctor, type_name) %};
+    {%- else if config.expected() && ctor.throws_type().is_some() %}
+    return uniffi::lift_expected<{{ type_name }}>({% call macros::rust_call(ctor) %}, [](uint64_t handle) {
+        return {{ type_name }}(new {{ impl_class_name }}(handle));
+    });
     {%- else %}
     return {{ type_name }}(new {{ impl_class_name }}({% call macros::rust_call(ctor) %}));
     {%- endif %}
@@ -54,19 +62,25 @@ namespace uniffi {
 {% endfor %}
 
 {%- for method in obj.methods() %}
-{% if method.is_async() %}uniffi::Future<{% endif %}{% match method.return_type() %}{% when Some with (return_type) %}{{ return_type|type_name(ci) }}{% else %}void{% endmatch %}{% if method.is_async() %}>{% endif %}
+{% match method.return_type() %}{% when Some with (return_type) %}{% call macros::result_type(method, return_type|type_name(ci)) %}{% else %}{% call macros::result_type(method, "void") %}{% endmatch %}
 {{ impl_class_name }}::{{ method.name()|fn_name }}({% call macros::param_list(method) %}) {
     auto ptr = this->_uniffi_internal_clone_pointer();
     {%- match method.return_type() %}
     {% when Some with (return_type) %}
     {%- if method.is_async() %}
     return {% call macros::rust_call_async_with_prefix("ptr", method, return_type|type_name(ci)) %};
+    {%- else if config.expected() && method.throws_type().is_some() %}
+    return uniffi::lift_expected<{{ return_type|type_name(ci) }}>({% call macros::rust_call_with_prefix("ptr", method) %}, [](auto ret) {
+        return uniffi::{{ return_type|lift_fn }}(ret);
+    });
     {%- else %}
     return uniffi::{{ return_type|lift_fn }}({% call macros::rust_call_with_prefix("ptr", method) %});
     {%- endif %}
     {%- else %}
     {%- if method.is_async() %}
     return {% call macros::rust_call_async_void_with_prefix("ptr", method) %};
+    {%- else if config.expected() && method.throws_type().is_some() %}
+    return {% call macros::rust_call_with_prefix("ptr", method) %};
     {%- else %}
     {% call macros::rust_call_with_prefix("ptr", method) -%};
     {%- endif %}

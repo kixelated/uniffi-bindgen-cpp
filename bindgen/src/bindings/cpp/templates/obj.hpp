@@ -50,18 +50,18 @@ struct {{ impl_class_name }}
     {%- match obj.primary_constructor() %}
     {%- when Some with (ctor) %}
     {%- call macros::docstring(ctor, 4) %}
-    static {% if ctor.is_async() %}::uniffi::Future<{% endif %}{{ type_name }}{% if ctor.is_async() %}>{% endif %} init({% call macros::param_list(ctor) %});
+    static {% call macros::result_type(ctor, type_name) %} init({% call macros::param_list(ctor) %});
     {%- else %}
     {%- endmatch %}
 
     {%- for ctor in obj.alternate_constructors() %}
     {%- call macros::docstring(ctor, 4) %}
-    static {% if ctor.is_async() %}::uniffi::Future<{% endif %}{{ type_name }}{% if ctor.is_async() %}>{% endif %} {{ ctor.name() }}({% call macros::param_list(ctor) %});
+    static {% call macros::result_type(ctor, type_name) %} {{ ctor.name() }}({% call macros::param_list(ctor) %});
     {%- endfor %}
 
     {%- for method in obj.methods() %}
     {%- call macros::docstring(method, 4) %}
-    {% if method.is_async() %}::uniffi::Future<{% endif %}{% match method.return_type() %}{% when Some with (return_type) %}{{ return_type|type_name(ci) }}{% else %}void{% endmatch %}{% if method.is_async() %}>{% endif %} {{ method.name()|fn_name }}({% call macros::param_list(method) %});
+    {% match method.return_type() %}{% when Some with (return_type) %}{% call macros::result_type(method, return_type|type_name(ci)) %}{% else %}{% call macros::result_type(method, "void") %}{% endmatch %} {{ method.name()|fn_name }}({% call macros::param_list(method) %});
     {%- endfor %}
 
     {%- for method in obj.uniffi_traits() %}
@@ -98,7 +98,7 @@ struct {{ impl_class_name }}
     {%- endmatch %}
     {%- endfor %}
 
-    {% if ci.is_name_used_as_error(name) %}
+    {% if ci.is_name_used_as_error(name) && !config.expected() %}
     void throw_underlying();
     {%- endif -%}
 private:

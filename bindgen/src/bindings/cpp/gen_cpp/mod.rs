@@ -10,7 +10,7 @@ mod record;
 
 use std::{
     borrow::Borrow,
-    cell::RefCell,
+    cell::{Cell, RefCell},
     collections::{BTreeSet, HashMap},
     format,
 };
@@ -53,12 +53,42 @@ impl CustomTypesConfig {
     }
 }
 
+/// How generated functions report a Rust error.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ErrorStyle {
+    /// Throw the error as a C++ exception.
+    #[default]
+    Exceptions,
+    /// Return `uniffi::expected<T, E>` and never throw, so the bindings build with
+    /// exceptions disabled.
+    Expected,
+}
+
+thread_local! {
+    // The type oracle renders type labels without access to the config, and the error style
+    // changes how an error type is spelled, so generation publishes it here.
+    static ERROR_STYLE: Cell<ErrorStyle> = const { Cell::new(ErrorStyle::Exceptions) };
+}
+
+pub(crate) fn error_style() -> ErrorStyle {
+    ERROR_STYLE.with(Cell::get)
+}
+
 #[derive(Clone, Deserialize, Serialize, Debug, Default)]
 pub(crate) struct Config {
     #[serde(default)]
     custom_types: HashMap<String, CustomTypesConfig>,
     #[serde(default)]
     enum_style: EnumStyle,
+    #[serde(default)]
+    error_style: ErrorStyle,
+}
+
+impl Config {
+    pub(crate) fn expected(&self) -> bool {
+        self.error_style == ErrorStyle::Expected
+    }
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug, Default)]
@@ -344,6 +374,28 @@ pub(crate) struct Bindings {
 }
 
 pub(crate) fn generate_cpp_bindings(ci: &ComponentInterface, config: &Config) -> Result<Bindings> {
+    if config.expected() {
+        // Foreign implementations report failure by throwing, and the foreign-future bridge
+        // carries `std::exception_ptr`; neither has an expected-style design yet.
+        if let Some(name) = ci
+            .callback_interface_definitions()
+            .iter()
+            .map(|cbi| cbi.name())
+            .chain(
+                ci.object_definitions()
+                    .iter()
+                    .filter(|obj| obj.has_callback_interface())
+                    .map(|obj| obj.name()),
+            )
+            .next()
+        {
+            anyhow::bail!(
+                "error_style = \"expected\" does not support callback interfaces yet, but `{name}` is one"
+            );
+        }
+    }
+    ERROR_STYLE.with(|style| style.set(config.error_style));
+
     let scaffolding_header = ScaffoldingHeader::new(ci)
         .render()
         .context("generating scaffolding header failed")?;

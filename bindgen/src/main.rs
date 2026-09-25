@@ -27,12 +27,9 @@ fn main() {
     let args = Args::parse();
 
     if args.library_mode {
-        let config_supplier = {
-            use uniffi_bindgen::cargo_metadata::CrateConfigSupplier;
-            let cmd = ::cargo_metadata::MetadataCommand::new();
-            let metadata = cmd.exec().context("error running cargo metadata").unwrap();
-            CrateConfigSupplier::from(metadata)
-        };
+        let config_supplier =
+            uniffi_bindgen::cargo_metadata::CrateConfigSupplier::from_cargo_metadata_command(false)
+                .unwrap();
 
         uniffi_bindgen::library_mode::generate_bindings(
             &args.source,

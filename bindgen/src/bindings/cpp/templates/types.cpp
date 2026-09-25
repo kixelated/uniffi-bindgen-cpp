@@ -25,7 +25,7 @@ namespace uniffi {
 {%- match typ %}
 {%- when Type::Enum { name, module_path } %}
 {%- let e = ci.get_enum_definition(name).unwrap() %}
-{%- if ci.is_name_used_as_error(name) %}
+{%- if name|error_class(ci) %}
 {% include "err_tmpl.cpp" %}
 {%- else %}
 {% include "enum_tmpl.cpp" %}

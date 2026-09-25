@@ -4,7 +4,7 @@ use uniffi_bindgen::{
     ComponentInterface,
 };
 
-use crate::bindings::cpp::gen_cpp::filters::CppCodeOracle;
+use crate::bindings::cpp::gen_cpp::filters::{is_error_class, CppCodeOracle};
 
 #[derive(Debug)]
 pub(crate) struct OptionalCodeType {
@@ -19,7 +19,7 @@ impl OptionalCodeType {
     pub(crate) fn can_dereference(inner_type: &Type, ci: &ComponentInterface) -> bool {
         match inner_type {
             Type::Object { .. } | Type::CallbackInterface { .. } => true,
-            Type::Enum { name, .. } => ci.is_name_used_as_error(name),
+            Type::Enum { name, .. } => is_error_class(ci, name),
             _ => false,
         }
     }

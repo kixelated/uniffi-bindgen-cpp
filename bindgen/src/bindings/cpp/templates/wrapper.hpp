@@ -40,6 +40,12 @@ namespace uniffi {
 }
 #endif
 
+{%- if config.expected() %}
+#include <cstdio>
+#include <cstdlib>
+#include "uniffi_expected.hpp"
+{%- endif %}
+
 #ifndef UNIFFI_CPP_ASYNC_FUTURE
 #define UNIFFI_CPP_ASYNC_FUTURE
 namespace uniffi {
@@ -86,7 +92,7 @@ typedef {{ type_name }} {{ name }};
 {%- match typ %}
 {%- when Type::Enum { module_path, name } %}
 {%- let e = ci.get_enum_definition(name).unwrap() %}
-{%- if ci.is_name_used_as_error(name) %}
+{%- if name|error_class(ci) %}
 {% include "err.hpp" %}
 {%- else %}
 {% include "enum.hpp" %}
@@ -158,7 +164,7 @@ void rustbuffer_free(RustBuffer);
 {% include "duration_conv.hpp" %}
 {%- when Type::Enum { module_path, name } %}
 {%- let e = ci.get_enum_definition(name).unwrap() %}
-{%- if ci.is_name_used_as_error(name) %}
+{%- if name|error_class(ci) %}
 {% include "err_conv.hpp" %}
 {%- else %}
 {% include "enum_conv.hpp" %}
@@ -184,11 +190,11 @@ void rustbuffer_free(RustBuffer);
 
 {% for func in ci.function_definitions() %}
 {%- call macros::docstring(func, 0) %}
-{% if func.is_async() %}uniffi::Future<{% endif %}{% match func.return_type() %}
+{% match func.return_type() %}
 {%- when Some with (return_type) %}
-{{ return_type|type_name(ci) }}{% if func.is_async() %}>{% endif %} {{ func.name()|fn_name }}({% call macros::param_list(func) %});
+{%- call macros::result_type(func, return_type|type_name(ci)) %} {{ func.name()|fn_name }}({% call macros::param_list(func) %});
 {%- when None %}
-void{% if func.is_async() %}>{% endif %} {{ func.name()|fn_name }}({% call macros::param_list(func) %});
+{%- call macros::result_type(func, "void") %} {{ func.name()|fn_name }}({% call macros::param_list(func) %});
 {%- endmatch %}
 {%- endfor %}
 } // namespace {{ namespace }}

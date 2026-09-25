@@ -15,12 +15,12 @@ void ensure_initialized() {
     const uint32_t scaffolding_contract_version = {{ ci.ffi_uniffi_contract_version().name() }}();
 
     if (bindings_contract_version != scaffolding_contract_version) {
-        throw std::runtime_error("UniFFI contract version mismatch: try cleaning and rebuilding your project");
+        {% call macros::fail("UniFFI contract version mismatch: try cleaning and rebuilding your project") %}
     }
 
     {%- for (name, expected_checksum) in ci.iter_checksums() %}
     if ({{ name }}() != {{ expected_checksum }}) {
-        throw std::runtime_error("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
+        {% call macros::fail("UniFFI API checksum mismatch: try cleaning and rebuilding your project") %}
     }
     {%- endfor %}
 
@@ -37,6 +37,86 @@ void ensure_initialized() {
 }
 }
 
+{%- if config.expected() %}
+// Returns when the call succeeded, or failed with an error the caller lifts through a
+// non-null `error_cb`. Anything else is a bug the expected style has no value for, so it
+// aborts: a Rust panic, or an error from a function that declares none.
+template <typename F>
+void check_rust_call(const RustCallStatus &status, F) {
+    switch (status.code) {
+    case 0:
+        return;
+
+    case 1:
+        if constexpr (!std::is_null_pointer_v<F>) {
+            return;
+        }
+        break;
+
+    case 2:
+        if (status.error_buf.len > 0) {
+            auto message = "Rust panic: " + {{ Type::String.borrow()|lift_fn }}(status.error_buf);
+            ::uniffi::detail::fatal(message.c_str());
+        }
+
+        ::uniffi::detail::fatal("A Rust panic has occurred");
+    }
+
+    ::uniffi::detail::fatal("Unexpected Rust call status");
+}
+
+// Calls `f`, returning `expected<R, E>` when `error_cb` lifts the function's error type `E`,
+// otherwise `R`.
+template <typename F, typename EF, typename... Args, typename R = std::invoke_result_t<F, Args..., RustCallStatus *>>
+auto rust_call(F f, EF error_cb, Args... args) {
+    initialize();
+
+    RustCallStatus status{};
+
+    if constexpr (std::is_null_pointer_v<EF>) {
+        if constexpr (std::is_void_v<R>) {
+            f(args..., &status);
+            check_rust_call(status, error_cb);
+        } else {
+            auto ret = f(args..., &status);
+            check_rust_call(status, error_cb);
+
+            return ret;
+        }
+    } else {
+        using E = std::invoke_result_t<EF, RustBuffer>;
+        using Result = ::uniffi::expected<R, E>;
+
+        if constexpr (std::is_void_v<R>) {
+            f(args..., &status);
+            check_rust_call(status, error_cb);
+            if (status.code == 1) {
+                return Result(::uniffi::unexpected<E>(error_cb(status.error_buf)));
+            }
+
+            return Result();
+        } else {
+            auto ret = f(args..., &status);
+            check_rust_call(status, error_cb);
+            if (status.code == 1) {
+                return Result(::uniffi::unexpected<E>(error_cb(status.error_buf)));
+            }
+
+            return Result(ret);
+        }
+    }
+}
+
+// Lifts the value of a successful fallible call and passes an error through.
+template <typename T, typename R, typename E, typename L>
+::uniffi::expected<T, E> lift_expected(::uniffi::expected<R, E> ret, L lift) {
+    if (!ret) {
+        return ::uniffi::unexpected<E>(std::move(ret.error()));
+    }
+
+    return lift(std::move(*ret));
+}
+{%- else %}
 template <typename F>
 void check_rust_call(const RustCallStatus &status, F error_cb) {
     switch (status.code) {
@@ -76,8 +156,10 @@ R rust_call(F f, EF error_cb, Args... args) {
         return ret;
     }
 }
+{%- endif %}
 
 {% include "async.cpp" %}
+{%- if !config.expected() %}
 
 template <typename F, typename W>
 void rust_call_trait_interface(RustCallStatus* status, F make_call, W write_value) {
@@ -119,6 +201,7 @@ void rust_call_trait_interface_with_error(RustCallStatus* status, F make_call, W
         status->error_buf = {{ Type::String.borrow()|lower_fn }}(e.what());
     }
 }
+{%- endif %}
 
 
 {% include "rust_buf_tmpl.cpp" %}

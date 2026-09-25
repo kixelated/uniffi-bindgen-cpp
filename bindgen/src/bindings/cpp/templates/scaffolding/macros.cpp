@@ -81,3 +81,7 @@ v{{- field_num -}}
 {{ field.name()|var_name }}
 {%- endif -%}
 {%- endmacro %}
+
+{%- macro fail(message) -%}
+throw std::runtime_error("{{ message }}");
+{%- endmacro %}
