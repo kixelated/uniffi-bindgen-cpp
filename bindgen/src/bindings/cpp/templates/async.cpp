@@ -1,5 +1,39 @@
 constexpr int8_t UNIFFI_RUST_FUTURE_POLL_READY = 0;
 constexpr int8_t UNIFFI_RUST_FUTURE_POLL_WAKE = 1;
+constexpr int8_t UNIFFI_RUST_CALL_ERROR = 1;
+constexpr int8_t UNIFFI_RUST_CALL_CANCELLED = 3;
+
+// Completes a Rust future whose result nobody will collect, then drops that result.
+// `rust_future_free` alone discards a ready result without releasing it, which leaks
+// its buffer or object handle. Completing a future that is not ready yields `Cancelled`.
+template <typename Complete, typename Lift, typename ErrorHandler>
+void release_uncollected(uint64_t handle, Complete &complete, Lift &lift, ErrorHandler &error_handler) noexcept {
+    RustCallStatus status{};
+    {%- if !config.expected() %}
+    try {
+    {%- endif %}
+        if constexpr (std::is_null_pointer_v<Lift>) {
+            complete(handle, &status);
+        } else {
+            auto value = complete(handle, &status);
+            if (status.code == 0) {
+                (void)lift(value);
+            }
+        }
+        if (status.code == UNIFFI_RUST_CALL_ERROR) {
+            if constexpr (!std::is_null_pointer_v<ErrorHandler>) {
+                (void)error_handler(status.error_buf);
+            } else {
+                rustbuffer_free(status.error_buf);
+            }
+        } else if (status.code != 0 && status.code != UNIFFI_RUST_CALL_CANCELLED) {
+            rustbuffer_free(status.error_buf);
+        }
+    {%- if !config.expected() %}
+    } catch (...) {
+    }
+    {%- endif %}
+}
 {%- if config.expected() %}
 {% include "async_expected.cpp" %}
 {%- else %}
@@ -33,8 +67,17 @@ public:
         }
     }
 
+    // Called when Rust drops the foreign future. Rust still owns a completion slot that
+    // is released only by the completion callback, so an unfinished call completes as
+    // cancelled here and any later result is ignored.
+    void set_complete_cancelled(std::function<void()> complete_cancelled) noexcept {
+        std::lock_guard<std::mutex> guard(mutex_);
+        complete_cancelled_ = std::move(complete_cancelled);
+    }
+
     void cancel() noexcept {
         std::function<void()> cancel;
+        std::function<void()> complete_cancelled;
         {
             std::lock_guard<std::mutex> guard(mutex_);
             if (finished_) {
@@ -43,12 +86,16 @@ public:
             finished_ = true;
             cancel_requested_ = true;
             cancel = std::move(cancel_);
+            complete_cancelled = std::move(complete_cancelled_);
         }
         if (cancel) {
             try {
                 cancel();
             } catch (...) {
             }
+        }
+        if (complete_cancelled) {
+            complete_cancelled();
         }
     }
 
@@ -57,6 +104,7 @@ private:
     bool finished_ = false;
     bool cancel_requested_ = false;
     std::function<void()> cancel_;
+    std::function<void()> complete_cancelled_;
 };
 
 inline uint64_t foreign_future_handle(const std::shared_ptr<ForeignFutureTaskState> &state) {
@@ -186,6 +234,9 @@ private:
         try {
             cancel_(handle_);
         } catch (...) {
+        }
+        if (!finished_.load()) {
+            release_uncollected(handle_, complete_, lift_, error_handler_);
         }
         fail(std::make_exception_ptr(::uniffi::AsyncDispatcherError()));
     }

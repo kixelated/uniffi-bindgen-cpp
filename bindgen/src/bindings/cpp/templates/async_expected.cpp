@@ -1,6 +1,3 @@
-constexpr int8_t UNIFFI_RUST_CALL_ERROR = 1;
-constexpr int8_t UNIFFI_RUST_CALL_CANCELLED = 3;
-
 // Drives one Rust future. The handle is freed only when the last reference to this state
 // drops: a pending poll and an in-progress `cancel()` each hold one, so neither can race
 // the free.
@@ -33,6 +30,9 @@ public:
     RustFutureState &operator=(const RustFutureState &) = delete;
 
     ~RustFutureState() {
+        if (!finished_.load()) {
+            release_uncollected(handle_, complete_, lift_, error_handler_);
+        }
         free_(handle_);
     }
 
@@ -116,10 +116,9 @@ private:
         }
     }
 
+    // Leaves `finished_` unset so the destructor releases the Rust result.
     void abandon() noexcept {
-        if (!finished_.exchange(true)) {
-            completion_state_->abandon();
-        }
+        completion_state_->abandon();
     }
 
     uint64_t handle_;

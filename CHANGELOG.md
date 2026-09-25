@@ -7,6 +7,10 @@
 - Core: Treat `Box<T>` as a plain `T`; refuse `HashSet<T>` until it has a C++ mapping
 - Core: Add the `error_style = "expected"` option, which returns `uniffi::expected<T, E>` instead
   of throwing, so the bindings build with exceptions disabled
+- Core: Release a ready async result that nothing collects (a rejected or shut-down
+  dispatcher), instead of leaking its buffer or object handle
+- Core: Complete a foreign future as cancelled when Rust drops it, releasing the completion
+  slot Rust allocated for it
 - Carries LiveKit's async support: `uniffi::Future<T>` with `get`/`wait_for`/`cancel`/`then`,
   async callback interfaces, and a pluggable dispatcher
 

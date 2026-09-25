@@ -177,6 +177,12 @@ void shutdown() {
     uniffi::shutdown_async_dispatcher();
     std::this_thread::sleep_for(200ms);
     CHECK(!ran);
+
+    // A future ready on its first poll has its result lowered before the rejected dispatch
+    // abandons it. That result is released rather than leaked; the memcheck run of this
+    // test catches a record buffer nobody collected.
+    auto late = futures::new_my_record("late", 1);
+    CHECK(late.wait_for(0ms) == std::future_status::ready);
 }
 
 int main() {

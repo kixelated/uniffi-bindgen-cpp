@@ -15,6 +15,12 @@
     uniffi_out_dropped_callback.handle = foreign_future_handle(state);
     uniffi_out_dropped_callback.free = reinterpret_cast<void *>(&foreign_future_drop);
 
+    state->set_complete_cancelled([complete, uniffi_callback_data]() {
+        Result result{};
+        result.call_status.code = 3;
+        complete(uniffi_callback_data, result);
+    });
+
     auto complete_failure = [state, complete, uniffi_callback_data](std::exception_ptr error) {
         if (!state->finish()) {
             return;
