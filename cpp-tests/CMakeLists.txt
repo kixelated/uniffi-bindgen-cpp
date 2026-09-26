@@ -116,7 +116,8 @@ set(EXPECTED_BINDINGS_DIR ${BINDINGS_BUILD_DIR}/bindings-expected)
 add_executable(expected-test
     tests/expected/main.cpp
     ${EXPECTED_BINDINGS_DIR}/futures.cpp
-    ${EXPECTED_BINDINGS_DIR}/error_types_builtin.cpp)
+    ${EXPECTED_BINDINGS_DIR}/error_types_builtin.cpp
+    ${EXPECTED_BINDINGS_DIR}/trait_methods.cpp)
 target_include_directories(expected-test PRIVATE ${EXPECTED_BINDINGS_DIR})
 target_link_directories(expected-test PRIVATE ${BINDINGS_BUILD_DIR})
 target_link_libraries(expected-test uniffi_bindgen_cpp_fixtures Threads::Threads ${ADDITIONAL_LIBS})
@@ -132,7 +133,8 @@ set_tests_properties(expected-test PROPERTIES TIMEOUT 30)
 memcheck_test(expected-test)
 list(APPEND EXPECTED_BINDING_FILES
     ${EXPECTED_BINDINGS_DIR}/futures.cpp
-    ${EXPECTED_BINDINGS_DIR}/error_types_builtin.cpp)
+    ${EXPECTED_BINDINGS_DIR}/error_types_builtin.cpp
+    ${EXPECTED_BINDINGS_DIR}/trait_methods.cpp)
 
 # Special multilib test that only needs to compile to check for potential symbol clashes
 add_executable(multilib-test 
@@ -167,6 +169,8 @@ add_custom_target(bindings-expected ALL
     COMMAND ./uniffi-bindgen-cpp --library ${UNIFFI_FIXTURES_LIB} --crate uniffi_fixture_async_calls
         --config ${CMAKE_CURRENT_SOURCE_DIR}/expected.toml --out-dir bindings-expected
     COMMAND ./uniffi-bindgen-cpp --library ${UNIFFI_FIXTURES_LIB} --crate uniffi_cpp_error_types_builtin
+        --config ${CMAKE_CURRENT_SOURCE_DIR}/expected.toml --out-dir bindings-expected
+    COMMAND ./uniffi-bindgen-cpp --library ${UNIFFI_FIXTURES_LIB} --crate uniffi_trait_methods
         --config ${CMAKE_CURRENT_SOURCE_DIR}/expected.toml --out-dir bindings-expected
     WORKING_DIRECTORY ${BINDINGS_BUILD_DIR}
     COMMENT "Generating expected-style bindings"

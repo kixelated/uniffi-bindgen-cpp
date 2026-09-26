@@ -10,6 +10,9 @@
 {%- match typ %}
 {%- when Type::Object { module_path, name, imp } %}
 {% include "obj.cpp" %}
+{%- when Type::Enum { name, module_path } %}
+{%- let e = ci.get_enum_definition(name).unwrap() %}
+{% include "enum.cpp" %}
 {%- else %}
 {%- endmatch %}
 {% endfor ~%}
