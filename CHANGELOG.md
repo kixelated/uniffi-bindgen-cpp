@@ -1,3 +1,10 @@
+#### v0.11.0-kixelated.2+v0.32.2
+
+----
+- Core: Render `Display` and `Debug` exported on an enum or an `error_style = "expected"` error
+  (`#[uniffi::export(Display, Debug)]`) as `to_string()` and `to_debug_string()`, as objects
+  already do
+
 #### v0.11.0-kixelated.1+v0.32.2
 
 ----
