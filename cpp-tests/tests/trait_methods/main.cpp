@@ -66,9 +66,19 @@ void test_proc_methods() {
     ASSERT_NE(trait->to_debug_string(), trait2->to_debug_string());
 }
 
+void test_enum_methods() {
+    auto s = trait_methods::TraitEnum(trait_methods::TraitEnum::kS{"s1"});
+    ASSERT_EQ(s.to_string(), "TraitEnum::S(\"s1\")");
+    ASSERT_EQ(s.to_debug_string(), "S(\"s1\")");
+
+    auto i = trait_methods::TraitEnum(trait_methods::TraitEnum::kI{7});
+    ASSERT_EQ(i.to_string(), "TraitEnum::I(7)");
+}
+
 int main() {
     test_trait_methods();
     test_proc_methods();
+    test_enum_methods();
 
     return 0;
 }

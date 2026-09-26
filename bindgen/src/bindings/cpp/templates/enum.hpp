@@ -60,6 +60,21 @@ struct {{ type_name }} {
     const std::variant<{% for variant in e.variants() %}{{ variant|variant_name(config.enum_style) }}{% if !loop.last %}, {% endif %}{% endfor %}> &get_variant() const {
         return variant;
     }
+    {%- let trait_methods = e.uniffi_trait_methods() %}
+    {%- if trait_methods.display_fmt.is_some() %}
+
+    /**
+     * Returns a string representation of the value, internally calls Rust's `Display` trait.
+     */
+    std::string to_string() const;
+    {%- endif %}
+    {%- if trait_methods.debug_fmt.is_some() %}
+
+    /**
+     * Returns a string representation of the value, internally calls Rust's `Debug` trait.
+     */
+    std::string to_debug_string() const;
+    {%- endif %}
 
 private:
     std::variant<{% for variant in e.variants() %}{{ variant|variant_name(config.enum_style) }}{% if !loop.last %}, {% endif %}{% endfor %}> variant;

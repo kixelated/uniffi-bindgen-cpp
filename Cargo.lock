@@ -874,7 +874,7 @@ dependencies = [
 
 [[package]]
 name = "uniffi-bindgen-cpp"
-version = "0.11.0-kixelated.1+v0.32.2"
+version = "0.11.0-kixelated.2+v0.32.2"
 dependencies = [
  "anyhow",
  "askama 0.13.1",

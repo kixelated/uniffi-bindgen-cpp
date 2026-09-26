@@ -2,6 +2,7 @@
 
 #include <error_types_builtin.hpp>
 #include <futures.hpp>
+#include <trait_methods.hpp>
 
 #include <atomic>
 #include <chrono>
@@ -74,6 +75,18 @@ void sync_errors() {
     auto infallible = errors::TestInterface::init();
     CHECK(infallible != nullptr);
     CHECK(!infallible->oops());
+}
+
+void error_display() {
+    // An error exporting Display and Debug prints what Rust would.
+    auto no_data = trait_methods::throw_multiple_trait_error(0);
+    CHECK(!no_data);
+    CHECK(no_data.error().to_string() == "MultipleTraitError::NoData");
+
+    auto nested = trait_methods::throw_multiple_trait_error(1);
+    CHECK(!nested);
+    CHECK(nested.error().to_string() == "nested error: error: not found");
+    CHECK(nested.error().to_debug_string() == "Nested(NotFound)");
 }
 
 void async_results() {
@@ -187,6 +200,7 @@ void shutdown() {
 
 int main() {
     sync_errors();
+    error_display();
     async_results();
     continuations();
     cancellation();
