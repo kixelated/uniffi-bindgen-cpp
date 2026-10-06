@@ -492,8 +492,9 @@ private:
     std::function<void()> cancel_;
 };
 
+// Discarding one cancels the call before it runs, so the compiler warns.
 template <typename T>
-class Future {
+class [[nodiscard]] Future {
 public:
     using Result = FutureResult<T>;
     using Callback = std::function<void(Result)>;

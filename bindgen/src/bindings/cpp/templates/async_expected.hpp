@@ -190,9 +190,9 @@ private:
 
 // A pending Rust async call. Block on it with `get()`, or attach a continuation with
 // `std::move(future).then(executor, callback)`. Destroying or cancelling an incomplete
-// future drops the Rust future, which aborts its work.
+// future drops the Rust future, which aborts its work, so discarding one warns.
 template <typename T, typename E = void>
-class Future {
+class [[nodiscard]] Future {
 public:
     using Output = FutureOutput<T, E>;
     using Callback = typename detail::FutureCallback<Output>::type;
