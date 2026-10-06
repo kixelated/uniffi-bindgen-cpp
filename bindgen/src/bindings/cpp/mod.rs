@@ -87,9 +87,10 @@ impl BindingGenerator for CppBindingGenerator {
                 let header_path = settings.out_dir.join(format!("{}.hpp", ci.namespace()));
                 let source_path = settings.out_dir.join(format!("{}.cpp", ci.namespace()));
 
-                fs::write(&scaffolding_header_path, scaffolding_header)?;
-                fs::write(&header_path, header)?;
-                fs::write(&source_path, source)?;
+                // Askama drops each template's final newline, which trips `-Wnewline-eof`.
+                fs::write(&scaffolding_header_path, scaffolding_header + "\n")?;
+                fs::write(&header_path, header + "\n")?;
+                fs::write(&source_path, source + "\n")?;
 
                 if config.expected() {
                     let expected = include_str!("expected.hpp")

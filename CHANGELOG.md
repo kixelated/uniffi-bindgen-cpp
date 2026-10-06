@@ -1,3 +1,10 @@
+#### v0.11.0-kixelated.3+v0.32.2
+
+----
+- Core: End every generated file with a newline, so consumers building with
+  `-Werror,-Wnewline-eof` (Xcode's defaults) compile them
+- Core: Mark `uniffi::Future` `[[nodiscard]]`: discarding one cancels the call before it runs
+
 #### v0.11.0-kixelated.2+v0.32.2
 
 ----

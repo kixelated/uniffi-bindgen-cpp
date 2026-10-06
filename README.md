@@ -18,7 +18,7 @@ the `error_style = "expected"` option. Its tags add a `-kixelated.N` pre-release
 collide with upstream's:
 
 ```bash
-cargo install uniffi-bindgen-cpp --locked --git https://github.com/kixelated/uniffi-bindgen-cpp --tag v0.11.0-kixelated.2+v0.32.2
+cargo install uniffi-bindgen-cpp --locked --git https://github.com/kixelated/uniffi-bindgen-cpp --tag v0.11.0-kixelated.3+v0.32.2
 ```
 
 # How to generate bindings

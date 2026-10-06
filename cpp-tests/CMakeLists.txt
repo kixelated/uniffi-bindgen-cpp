@@ -9,6 +9,10 @@ if (MSVC)
 else()
     add_compile_options(-pedantic-errors)
 endif()
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # Generated files must end with a newline; consumers build with this as an error.
+    add_compile_options(-Werror=newline-eof)
+endif()
 
 include(CTest)
 enable_testing()
