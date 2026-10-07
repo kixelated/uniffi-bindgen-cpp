@@ -457,3 +457,22 @@ pub(crate) fn cpp_deref(type_: Type, ci: &ComponentInterface) -> Result<String> 
     }
     Ok("".to_string())
 }
+
+/// A C or C++ string literal holding `value`.
+pub(crate) fn string_literal(value: &str) -> String {
+    let mut out = String::from("\"");
+    for c in value.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            // Octal, which unlike `\x` cannot swallow the characters after it.
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\{:03o}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}

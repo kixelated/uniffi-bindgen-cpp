@@ -3,6 +3,7 @@ pub(crate) mod gen_cpp;
 use std::{fmt::Debug, fs};
 
 use anyhow::Result;
+use camino::Utf8Path;
 use uniffi_bindgen::{
     interface::Literal, BindingGenerator, Component, ComponentInterface, GenerationSettings,
 };
@@ -74,32 +75,41 @@ impl BindingGenerator for CppBindingGenerator {
         for Component { ci, config, .. } in components {
             if self.scaffolding_mode {
                 unimplemented!("Cpp scaffolding is not supported yet!");
-            } else {
-                let Bindings {
-                    scaffolding_header,
-                    header,
-                    source,
-                } = generate_cpp_bindings(&ci, &config)?;
-
-                let scaffolding_header_path = settings
-                    .out_dir
-                    .join(format!("{}_scaffolding.hpp", ci.namespace()));
-                let header_path = settings.out_dir.join(format!("{}.hpp", ci.namespace()));
-                let source_path = settings.out_dir.join(format!("{}.cpp", ci.namespace()));
-
-                // Askama drops each template's final newline, which trips `-Wnewline-eof`.
-                fs::write(&scaffolding_header_path, scaffolding_header + "\n")?;
-                fs::write(&header_path, header + "\n")?;
-                fs::write(&source_path, source + "\n")?;
-
-                if config.expected() {
-                    let expected = include_str!("expected.hpp")
-                        .replace("{tl_expected}", include_str!("vendor/tl_expected.hpp"));
-                    fs::write(settings.out_dir.join("uniffi_expected.hpp"), expected)?;
-                }
             }
+            write_cpp_bindings(&settings.out_dir, ci, config)?;
         }
 
         Ok(())
     }
+}
+
+/// Writes `<namespace>.hpp`, `<namespace>.cpp`, and `<namespace>_scaffolding.hpp`, plus
+/// `uniffi_expected.hpp` under the expected error style.
+pub(crate) fn write_cpp_bindings(
+    out_dir: &Utf8Path,
+    ci: &ComponentInterface,
+    config: &gen_cpp::Config,
+) -> Result<()> {
+    let Bindings {
+        scaffolding_header,
+        header,
+        source,
+    } = generate_cpp_bindings(ci, config)?;
+    let namespace = ci.namespace();
+
+    // Askama drops each template's final newline, which trips `-Wnewline-eof`.
+    fs::write(
+        out_dir.join(format!("{namespace}_scaffolding.hpp")),
+        scaffolding_header + "\n",
+    )?;
+    fs::write(out_dir.join(format!("{namespace}.hpp")), header + "\n")?;
+    fs::write(out_dir.join(format!("{namespace}.cpp")), source + "\n")?;
+
+    if config.expected() {
+        let expected = include_str!("expected.hpp")
+            .replace("{tl_expected}", include_str!("vendor/tl_expected.hpp"));
+        fs::write(out_dir.join("uniffi_expected.hpp"), expected)?;
+    }
+
+    Ok(())
 }

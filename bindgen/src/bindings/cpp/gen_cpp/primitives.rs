@@ -14,7 +14,7 @@ fn render_literal(literal: &Literal) -> String {
                 "false".into()
             }
         }
-        Literal::String(s) => format!("\"{s}\""),
+        Literal::String(s) => super::filters::string_literal(s),
         Literal::Int(i, radix, _) => match radix {
             Radix::Octal => format!("{i:o}"),
             Radix::Decimal => format!("{i}"),
