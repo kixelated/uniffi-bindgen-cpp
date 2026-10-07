@@ -1,7 +1,7 @@
 #### Unreleased
 
 ----
-- C: Add `--lang c`, which generates a C99 header and its C++ implementation over the
+- C: Add `--lang c`, which generates a C11 header and its C++ implementation over the
   expected-style C++ bindings: owned structs with `_free` functions, errors returned as values,
   and async calls that take a callback and return a cancelling task, run on a pluggable dispatcher
 - Core: Escape string literal defaults, which broke the build when they held a quote or backslash

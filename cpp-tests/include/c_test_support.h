@@ -1,4 +1,4 @@
-/* Helpers for the C API tests: an always-on CHECK and a latch, which C99 has no threads for. */
+/* Helpers for the C API tests: an always-on CHECK and a latch, since C11 threads are optional. */
 #ifndef C_TEST_SUPPORT_H
 #define C_TEST_SUPPORT_H
 

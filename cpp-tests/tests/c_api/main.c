@@ -87,8 +87,8 @@ static void records(void) {
     item.origin.y = -2;
     item.color = CAPI_COLOR_GREEN;
     item.shape.tag = CAPI_SHAPE_PATH;
-    item.shape.value.path.points.data = path;
-    item.shape.value.path.points.len = 2;
+    item.shape.path.points.data = path;
+    item.shape.path.points.len = 2;
     item.labels.keys = label_keys;
     item.labels.values = label_values;
     item.labels.len = 2;
@@ -118,8 +118,8 @@ static void records(void) {
     CHECK(echo->origin.x == -1 && echo->origin.y == -2);
     CHECK(echo->color == CAPI_COLOR_GREEN);
     CHECK(echo->shape.tag == CAPI_SHAPE_PATH);
-    CHECK(echo->shape.value.path.points.len == 2);
-    CHECK(echo->shape.value.path.points.data[1].x == 2);
+    CHECK(echo->shape.path.points.len == 2);
+    CHECK(echo->shape.path.points.data[1].x == 2);
     labels = echo->labels;
     CHECK(labels.len == 2);
     CHECK(streq(lookup(&labels, "k1"), "v1"));
@@ -160,16 +160,16 @@ static void enums(void) {
     capi_shape_free(shape);
 
     shape = capi_make_shape(1);
-    CHECK(shape->tag == CAPI_SHAPE_CIRCLE && shape->value.circle.radius == 2.5);
+    CHECK(shape->tag == CAPI_SHAPE_CIRCLE && shape->circle.radius == 2.5);
     capi_shape_free(shape);
 
     shape = capi_make_shape(2);
-    CHECK(shape->tag == CAPI_SHAPE_LABEL && streq(shape->value.label.v1, "two"));
+    CHECK(shape->tag == CAPI_SHAPE_LABEL && streq(shape->label.v1, "two"));
     capi_shape_free(shape);
 
     shape = capi_make_shape(3);
-    CHECK(shape->tag == CAPI_SHAPE_PATH && shape->value.path.points.len == 3);
-    CHECK(shape->value.path.points.data[2].x == 2 && shape->value.path.points.data[2].y == -2);
+    CHECK(shape->tag == CAPI_SHAPE_PATH && shape->path.points.len == 3);
+    CHECK(shape->path.points.data[2].x == 2 && shape->path.points.data[2].y == -2);
     capi_shape_free(shape);
 }
 
@@ -222,14 +222,14 @@ static void errors(void) {
 
     error = capi_fail(2);
     CHECK(error && error->tag == CAPI_ERROR_INVALID);
-    CHECK(streq(error->value.invalid.v1, "two"));
+    CHECK(streq(error->invalid.v1, "two"));
     CHECK(streq(capi_error_message(error), "invalid: two"));
     capi_error_free(error);
 
     error = capi_fail(9);
     CHECK(error && error->tag == CAPI_ERROR_CODE);
-    CHECK(error->value.code.code == 9);
-    CHECK(error->value.code.at.x == 3 && error->value.code.at.y == 4);
+    CHECK(error->code.code == 9);
+    CHECK(error->code.at.x == 3 && error->code.at.y == 4);
     CHECK(streq(capi_error_message(error), "code 9 at 3,4"));
     capi_error_free(error);
 
@@ -294,7 +294,7 @@ static void objects(void) {
     capi_item_free(got);
 
     error = capi_store_get(store, 5, &got);
-    CHECK(error && error->tag == CAPI_ERROR_CODE && error->value.code.code == 5 && got == NULL);
+    CHECK(error && error->tag == CAPI_ERROR_CODE && error->code.code == 5 && got == NULL);
     capi_error_free(error);
 
     got = capi_store_find(store, "one");

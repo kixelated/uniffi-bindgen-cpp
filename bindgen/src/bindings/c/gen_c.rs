@@ -827,29 +827,53 @@ impl<'a> Gen<'a> {
         }
         writeln!(h, "}} {tag};\n")?;
 
+        // C++ forbids types declared inside an anonymous union, so each variant's fields get a
+        // named struct, declared first.
+        let mut members = Vec::new();
+        for variant in e.variants().iter().filter(|v| v.has_fields()) {
+            // The anonymous union shares the struct's members, so a variant can't reuse one.
+            let member = variant_member(variant.name());
+            if member == "tag" || (error && member == "message") {
+                bail!(
+                    "the C backend cannot name `{}`'s variant `{}` `{member}`, which the struct already uses",
+                    e.name(),
+                    variant.name()
+                );
+            }
+            let fields = format!("{}_{member}", ct.c);
+            self.claim(&fields)?;
+            h.push_str(&line_doc(&format!(
+                "The fields of a `{}` holding `{}`.",
+                ct.c,
+                variant_constant(&ct.c, variant.name())
+            )));
+            writeln!(h, "typedef struct {fields} {{")?;
+            for (i, field) in variant.fields().iter().enumerate() {
+                let fct = self.ctype(&field.as_type())?;
+                h.push_str(&doc(field.docstring(), 4));
+                writeln!(
+                    h,
+                    "    {};",
+                    decl(&fct.field(), &c_field_name(field, i + 1))
+                )?;
+            }
+            writeln!(h, "}} {fields};\n")?;
+            members.push((fields, member));
+        }
+
         h.push_str(&doc(e.docstring(), 0));
         writeln!(h, "struct {} {{", ct.c)?;
         writeln!(h, "    {tag} tag;")?;
-        if e.contains_variant_fields() {
+        if !members.is_empty() {
             writeln!(
                 h,
                 "    /** The fields of the variant `tag` names; variants without fields have no member. */"
             )?;
             writeln!(h, "    union {{")?;
-            for variant in e.variants().iter().filter(|v| v.has_fields()) {
-                writeln!(h, "        struct {{")?;
-                for (i, field) in variant.fields().iter().enumerate() {
-                    let fct = self.ctype(&field.as_type())?;
-                    h.push_str(&doc(field.docstring(), 12));
-                    writeln!(
-                        h,
-                        "            {};",
-                        decl(&fct.field(), &c_field_name(field, i + 1))
-                    )?;
-                }
-                writeln!(h, "        }} {};", variant_member(variant.name()))?;
+            for (fields, member) in &members {
+                writeln!(h, "        {fields} {member};")?;
             }
-            writeln!(h, "    }} value;")?;
+            writeln!(h, "    }};")?;
         }
         if error {
             writeln!(h, "    /** Describes the error, for logs. */")?;
@@ -1459,13 +1483,10 @@ impl<'a> Gen<'a> {
                 let name = c_field_name(f, i + 1);
                 writeln!(
                     to_cases,
-                    "        out.value.{member}.{name} = to_c_{fcanon}(inner.{name});"
+                    "        out.{member}.{name} = to_c_{fcanon}(inner.{name});"
                 )?;
-                from_items.push(format!("from_c_{fcanon}(value.value.{member}.{name})"));
-                writeln!(
-                    free_case,
-                    "        free_c_{fcanon}(value.value.{member}.{name});"
-                )?;
+                from_items.push(format!("from_c_{fcanon}(value.{member}.{name})"));
+                writeln!(free_case, "        free_c_{fcanon}(value.{member}.{name});")?;
             }
             if error && !display {
                 let message = if flat_error {

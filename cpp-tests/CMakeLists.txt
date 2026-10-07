@@ -3,8 +3,8 @@ project(binding-tests VERSION 1.0.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-# The C backend's header promises C99.
-set(CMAKE_C_STANDARD 99)
+# The C backend's header promises C11.
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
@@ -13,9 +13,13 @@ if (MSVC)
 else()
     add_compile_options(-pedantic-errors)
 endif()
+# Generated files must end with a newline; consumers build with this as an error. CI picks
+# only the C++ compiler, so the C one can be GCC, which lacks the flag.
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    # Generated files must end with a newline; consumers build with this as an error.
-    add_compile_options(-Werror=newline-eof)
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Werror=newline-eof>)
+endif()
+if (CMAKE_C_COMPILER_ID MATCHES "Clang")
+    add_compile_options($<$<COMPILE_LANGUAGE:C>:-Werror=newline-eof>)
 endif()
 
 include(CTest)
@@ -144,7 +148,7 @@ list(APPEND EXPECTED_BINDING_FILES
     ${EXPECTED_BINDINGS_DIR}/error_types_builtin.cpp
     ${EXPECTED_BINDINGS_DIR}/trait_methods.cpp)
 
-# The C backend: a C99 header over expected-style C++ bindings, built without exceptions.
+# The C backend: a C11 header over expected-style C++ bindings, built without exceptions.
 set(C_BINDINGS_DIR ${BINDINGS_BUILD_DIR}/bindings-c)
 set(C_BINDING_FILES ${C_BINDINGS_DIR}/capi.cpp ${C_BINDINGS_DIR}/capi_c.cpp)
 macro(c_test_case TEST_NAME)

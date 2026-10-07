@@ -69,7 +69,7 @@ shutdown function to drain accepted work.
 
 # C bindings
 
-`--lang c` generates a C99 header, `<namespace>.h`, over the C++ bindings. It writes the
+`--lang c` generates a C11 header, `<namespace>.h`, over the C++ bindings. It writes the
 C++ bindings in the `error_style = "expected"` style too, plus `<namespace>_c.cpp`, which
 converts between the two. Compile `<namespace>.cpp` and `<namespace>_c.cpp` as C++17 (exceptions
 and RTTI may be off) and include only `<namespace>.h` from C.
@@ -83,8 +83,9 @@ handle is `my_object *`, released with `my_object_free`. The rest follows from a
 
 * A call that can fail returns an error struct, or NULL on success, and writes its result to a
   trailing `out` pointer. An error is a tagged union with a `message`; free it with `<error>_free`.
-* Records are plain structs, data-carrying enums are a `tag` plus a `value` union, and flat enums
-  are C enums. A record with `#[uniffi(default)]` fields gets `<record>_default()`.
+* Records are plain structs, data-carrying enums are a `tag` plus an anonymous union of
+  `<enum>_<variant>` structs (`shape->circle.radius`), and flat enums are C enums. A record
+  with `#[uniffi(default)]` fields gets `<record>_default()`.
 * Arguments are borrowed for the call. Everything returned is owned by the caller and freed with
   the matching `_free` (`<namespace>_string_free` for strings).
 * Optional strings, objects, and structs are pointers that are NULL when absent; optional scalars

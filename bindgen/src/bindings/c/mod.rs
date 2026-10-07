@@ -2,7 +2,7 @@
 //!
 //! The C++ backend already lifts and lowers every type, drives Rust futures, and owns the
 //! async dispatcher, so the C backend renders it in the expected error style and wraps it:
-//! `<namespace>.h` is the C99 header, and `<namespace>_c.cpp` converts between its structs
+//! `<namespace>.h` is the C11 header, and `<namespace>_c.cpp` converts between its structs
 //! and the C++ types. Consumers compile `<namespace>.cpp` and `<namespace>_c.cpp` as C++17.
 
 mod gen_c;
