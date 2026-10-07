@@ -1,4 +1,4 @@
-#### Unreleased
+#### v0.11.0-kixelated.4+v0.32.2
 
 ----
 - C: Add `--lang c`, which generates a C11 header and its C++ implementation over the
