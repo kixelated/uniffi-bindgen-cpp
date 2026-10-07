@@ -896,6 +896,7 @@ dependencies = [
  "async-trait",
  "uniffi 0.32.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "uniffi-async-calls",
+ "uniffi-c-api",
  "uniffi-custom-types-builtin",
  "uniffi-empty-type",
  "uniffi-enum-style-test",
@@ -917,6 +918,14 @@ dependencies = [
  "uniffi-fixture-trait-methods",
  "uniffi-reserved-field-name",
  "uniffi-type-flattening",
+]
+
+[[package]]
+name = "uniffi-c-api"
+version = "0.1.0"
+dependencies = [
+ "thiserror 1.0.50",
+ "uniffi 0.32.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

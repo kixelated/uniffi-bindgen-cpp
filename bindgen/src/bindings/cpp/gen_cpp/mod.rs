@@ -2,7 +2,7 @@ mod callback_interface;
 mod compounds;
 mod custom;
 mod enum_;
-mod filters;
+pub(crate) mod filters;
 mod miscellany;
 mod object;
 mod primitives;
@@ -88,6 +88,18 @@ pub(crate) struct Config {
 impl Config {
     pub(crate) fn expected(&self) -> bool {
         self.error_style == ErrorStyle::Expected
+    }
+
+    /// This configuration with errors returned rather than thrown.
+    pub(crate) fn with_expected(&self) -> Self {
+        Self {
+            error_style: ErrorStyle::Expected,
+            ..self.clone()
+        }
+    }
+
+    pub(crate) fn enum_style(&self) -> &EnumStyle {
+        &self.enum_style
     }
 }
 

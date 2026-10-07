@@ -20,6 +20,7 @@ mod uniffi_fixtures {
     uniffi_reserved_field_name::uniffi_reexport_scaffolding!();
     uniffi_type_flattening::uniffi_reexport_scaffolding!();
     uniffi_fixture_async_calls::uniffi_reexport_scaffolding!();
+    uniffi_c_api::uniffi_reexport_scaffolding!();
 
     uniffi_ext_types_export::uniffi_reexport_scaffolding!();
     uniffi_ext_types_import::uniffi_reexport_scaffolding!();
