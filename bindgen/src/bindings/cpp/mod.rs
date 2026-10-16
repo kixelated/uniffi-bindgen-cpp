@@ -1,11 +1,16 @@
 pub(crate) mod gen_cpp;
 
-use std::{fmt::Debug, fs};
+use std::{
+    collections::{BTreeSet, HashMap},
+    fmt::Debug,
+    fs,
+};
 
 use anyhow::Result;
 use camino::Utf8Path;
 use uniffi_bindgen::{
-    interface::Literal, BindingGenerator, Component, ComponentInterface, GenerationSettings,
+    interface::{rename, Literal, Type},
+    BindingGenerator, Component, ComponentInterface, GenerationSettings,
 };
 
 use self::gen_cpp::{generate_cpp_bindings, Bindings};
@@ -62,9 +67,29 @@ impl BindingGenerator for CppBindingGenerator {
     fn update_component_configs(
         &self,
         _settings: &GenerationSettings,
-        _components: &mut Vec<uniffi_bindgen::Component<Self::Config>>,
+        components: &mut Vec<uniffi_bindgen::Component<Self::Config>>,
     ) -> Result<()> {
-        return Ok(());
+        // Keyed by crate, so a component that imports a renamed type sees the new name too.
+        let mut renames = HashMap::new();
+        for Component { ci, config, .. } in components.iter() {
+            if let Some(prefix) = config.strip_type_prefix() {
+                renames.insert(ci.crate_name().to_string(), strip_type_prefix(ci, prefix)?);
+            }
+        }
+        if renames.is_empty() {
+            return Ok(());
+        }
+
+        let flat: HashMap<String, String> = renames
+            .values()
+            .flatten()
+            .filter_map(|(old, new)| Some((old.clone(), new.as_str()?.to_string())))
+            .collect();
+        for component in components.iter_mut() {
+            rename(&mut component.ci, &renames);
+            component.config.renames = flat.clone();
+        }
+        Ok(())
     }
 
     fn write_bindings(
@@ -81,6 +106,36 @@ impl BindingGenerator for CppBindingGenerator {
 
         Ok(())
     }
+}
+
+/// Renames each local record, object, enum, and callback interface named `<prefix><Name>` to
+/// `<Name>`, where `<Name>` starts with an uppercase letter. Custom types keep their names, since
+/// `custom_types` is keyed by them. Refuses a rename onto a name that is already a type.
+fn strip_type_prefix(ci: &ComponentInterface, prefix: &str) -> Result<toml::Table> {
+    let names: BTreeSet<&str> = ci.iter_local_types().filter_map(Type::name).collect();
+
+    let mut renames = toml::Table::new();
+    for ty in ci.iter_local_types() {
+        let name = match ty {
+            Type::Record { name, .. }
+            | Type::Object { name, .. }
+            | Type::Enum { name, .. }
+            | Type::CallbackInterface { name, .. } => name,
+            _ => continue,
+        };
+        let Some(stripped) = name.strip_prefix(prefix) else {
+            continue;
+        };
+        if !stripped.starts_with(|c: char| c.is_ascii_uppercase()) {
+            continue;
+        }
+        anyhow::ensure!(
+            !names.contains(stripped),
+            "strip_type_prefix = \"{prefix}\" renames `{name}` to `{stripped}`, which is already a type"
+        );
+        renames.insert(name.clone(), stripped.into());
+    }
+    Ok(renames)
 }
 
 /// Writes `<namespace>.hpp`, `<namespace>.cpp`, and `<namespace>_scaffolding.hpp`, plus

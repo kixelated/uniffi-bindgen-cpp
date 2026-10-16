@@ -1,3 +1,12 @@
+#### Unreleased
+
+----
+- **BREAKING** Core: `error_style = "expected"` always uses the bundled `tl::expected`, never
+  `std::expected`, so bindings built at one C++ standard link with code built at another. With
+  exceptions disabled, `value()` on an error now aborts with a message instead of being undefined
+- Core: Add the `strip_type_prefix` option, which drops a prefix from type names
+  (`FooClient` becomes `Client`)
+
 #### v0.11.0-kixelated.4+v0.32.2
 
 ----

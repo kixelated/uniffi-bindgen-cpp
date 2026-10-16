@@ -12,7 +12,7 @@ use crate::bindings::cpp::{
     CodeType,
 };
 
-use super::{error_style, EnumStyle, ErrorStyle};
+use super::{error_style, renamed, EnumStyle, ErrorStyle};
 
 type Result<T> = std::result::Result<T, askama::Error>;
 
@@ -176,7 +176,7 @@ pub(crate) trait AsCodeType {
 
 impl<T: AsType> AsCodeType for T {
     fn as_codetype(&self) -> Box<dyn CodeType> {
-        match self.as_type() {
+        match renamed(self.as_type()) {
             Type::UInt8 => Box::new(primitives::UInt8CodeType),
             Type::Int8 => Box::new(primitives::Int8CodeType),
             Type::UInt16 => Box::new(primitives::UInt16CodeType),

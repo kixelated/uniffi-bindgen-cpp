@@ -1,13 +1,16 @@
 // Bindings generated with `error_style = "expected"`, built with exceptions and RTTI disabled.
 
+#include <capi.hpp>
 #include <error_types_builtin.hpp>
 #include <futures.hpp>
 #include <trait_methods.hpp>
 
 #include <atomic>
 #include <chrono>
+#include <csignal>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <thread>
 #include <variant>
 
@@ -87,6 +90,19 @@ void error_display() {
     CHECK(!nested);
     CHECK(nested.error().to_string() == "nested error: error: not found");
     CHECK(nested.error().to_debug_string() == "Nested(NotFound)");
+}
+
+void renamed_types() {
+    // `strip_type_prefix = "Capi"` names every type without the prefix, in signatures too.
+    auto store = capi::Store::open("store");
+    CHECK(store && (*store)->name() == "store");
+
+    // uniffi's own rename skips a constructor's error type.
+    auto empty = capi::Store::open("");
+    CHECK(!empty);
+    auto invalid = variant_of<capi::Error::kInvalid>(empty.error());
+    CHECK(invalid && invalid->v1 == "empty name");
+    CHECK(empty.error().to_string() == "invalid: empty name");
 }
 
 void async_results() {
@@ -198,9 +214,18 @@ void shutdown() {
     CHECK(late.wait_for(0ms) == std::future_status::ready);
 }
 
-int main() {
+int main(int argc, char **argv) {
+    if (argc > 1 && std::strcmp(argv[1], "value-on-error") == 0) {
+        // The abort is the expected outcome; the test matches the message printed before it.
+        std::signal(SIGABRT, [](int) { std::_Exit(0); });
+        auto empty = capi::Store::open("");
+        (void)empty.value();
+        return 1;
+    }
+
     sync_errors();
     error_display();
+    renamed_types();
     async_results();
     continuations();
     cancellation();

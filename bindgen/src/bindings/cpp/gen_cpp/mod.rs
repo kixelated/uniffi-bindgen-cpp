@@ -69,10 +69,25 @@ thread_local! {
     // The type oracle renders type labels without access to the config, and the error style
     // changes how an error type is spelled, so generation publishes it here.
     static ERROR_STYLE: Cell<ErrorStyle> = const { Cell::new(ErrorStyle::Exceptions) };
+
+    // uniffi's `rename` misses some types, such as a constructor's error, so the oracle renames
+    // each type it renders as well.
+    static RENAMES: RefCell<HashMap<String, String>> = RefCell::default();
 }
 
 pub(crate) fn error_style() -> ErrorStyle {
     ERROR_STYLE.with(Cell::get)
+}
+
+/// `ty` with every type it names under its new name.
+pub(crate) fn renamed(mut ty: Type) -> Type {
+    RENAMES.with(|renames| {
+        let renames = renames.borrow();
+        if !renames.is_empty() {
+            ty.rename_recursive(&|name| renames.get(name).map_or(name, String::as_str).into());
+        }
+    });
+    ty
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug, Default)]
@@ -83,6 +98,11 @@ pub(crate) struct Config {
     enum_style: EnumStyle,
     #[serde(default)]
     error_style: ErrorStyle,
+    #[serde(default)]
+    strip_type_prefix: Option<String>,
+    /// Every type renamed by `strip_type_prefix`, across all components, old name to new.
+    #[serde(skip)]
+    pub(crate) renames: HashMap<String, String>,
 }
 
 impl Config {
@@ -100,6 +120,10 @@ impl Config {
 
     pub(crate) fn enum_style(&self) -> &EnumStyle {
         &self.enum_style
+    }
+
+    pub(crate) fn strip_type_prefix(&self) -> Option<&str> {
+        self.strip_type_prefix.as_deref()
     }
 }
 
@@ -256,7 +280,13 @@ impl<'a> CppWrapperHeader<'a> {
                 if !emitted_names.insert(name) {
                     continue;
                 }
-                match self.ci.get_type(name) {
+                // Not `ci.get_type`: uniffi's `rename` leaves that index under the old names.
+                let found = self
+                    .ci
+                    .iter_local_types()
+                    .chain(self.ci.iter_external_types())
+                    .find(|t| type_name(t) == Some(name));
+                match found {
                     // External types are defined in their own namespace's header with their own
                     // converters declared, which we `#include`. They must not enter the local
                     // definition ordering, or we'd try to emit a definition we don't have.
@@ -407,6 +437,7 @@ pub(crate) fn generate_cpp_bindings(ci: &ComponentInterface, config: &Config) ->
         }
     }
     ERROR_STYLE.with(|style| style.set(config.error_style));
+    RENAMES.with(|renames| renames.replace(config.renames.clone()));
 
     let scaffolding_header = ScaffoldingHeader::new(ci)
         .render()
