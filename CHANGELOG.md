@@ -1,4 +1,4 @@
-#### Unreleased
+#### v0.11.0-kixelated.5+v0.32.2
 
 ----
 - **BREAKING** Core: `error_style = "expected"` always uses the bundled `tl::expected`, never
