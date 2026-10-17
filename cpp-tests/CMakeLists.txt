@@ -129,7 +129,8 @@ add_executable(expected-test
     tests/expected/main.cpp
     ${EXPECTED_BINDINGS_DIR}/futures.cpp
     ${EXPECTED_BINDINGS_DIR}/error_types_builtin.cpp
-    ${EXPECTED_BINDINGS_DIR}/trait_methods.cpp)
+    ${EXPECTED_BINDINGS_DIR}/trait_methods.cpp
+    ${EXPECTED_BINDINGS_DIR}/capi.cpp)
 target_include_directories(expected-test PRIVATE ${EXPECTED_BINDINGS_DIR})
 target_link_directories(expected-test PRIVATE ${BINDINGS_BUILD_DIR})
 target_link_libraries(expected-test uniffi_bindgen_cpp_fixtures Threads::Threads ${ADDITIONAL_LIBS})
@@ -143,10 +144,26 @@ add_dependencies(expected-test bindings-expected)
 add_test(NAME expected-test COMMAND expected-test)
 set_tests_properties(expected-test PROPERTIES TIMEOUT 30)
 memcheck_test(expected-test)
+# Reading the value of an error aborts with a message, rather than being undefined.
+add_test(NAME expected-value-on-error-test COMMAND expected-test value-on-error)
+set_tests_properties(expected-value-on-error-test PROPERTIES
+    TIMEOUT 30
+    PASS_REGULAR_EXPRESSION "uniffi: expected::value\\(\\) called on an error")
 list(APPEND EXPECTED_BINDING_FILES
     ${EXPECTED_BINDINGS_DIR}/futures.cpp
     ${EXPECTED_BINDINGS_DIR}/error_types_builtin.cpp
-    ${EXPECTED_BINDINGS_DIR}/trait_methods.cpp)
+    ${EXPECTED_BINDINGS_DIR}/trait_methods.cpp
+    ${EXPECTED_BINDINGS_DIR}/capi.cpp)
+
+# `strip_type_prefix` refuses to rename a type onto one that already exists.
+add_test(NAME strip-type-prefix-collision-test
+    COMMAND ${BINDINGS_BUILD_DIR}/uniffi-bindgen-cpp${CMAKE_EXECUTABLE_SUFFIX}
+        --library ${UNIFFI_FIXTURES_LIB} --crate uniffi_cpp_error_types_builtin
+        --config ${CMAKE_CURRENT_SOURCE_DIR}/collision.toml
+        --out-dir ${CMAKE_CURRENT_BINARY_DIR}/collision
+    WORKING_DIRECTORY ${BINDINGS_BUILD_DIR})
+set_tests_properties(strip-type-prefix-collision-test PROPERTIES
+    PASS_REGULAR_EXPRESSION "renames `Flat[A-Za-z]+` to `[A-Za-z]+`, which is already a type")
 
 # The C backend: a C11 header over expected-style C++ bindings, built without exceptions.
 set(C_BINDINGS_DIR ${BINDINGS_BUILD_DIR}/bindings-c)
@@ -230,6 +247,8 @@ add_custom_target(bindings-expected ALL
         --config ${CMAKE_CURRENT_SOURCE_DIR}/expected.toml --out-dir bindings-expected
     COMMAND ./uniffi-bindgen-cpp --library ${UNIFFI_FIXTURES_LIB} --crate uniffi_trait_methods
         --config ${CMAKE_CURRENT_SOURCE_DIR}/expected.toml --out-dir bindings-expected
+    COMMAND ./uniffi-bindgen-cpp --library ${UNIFFI_FIXTURES_LIB} --crate uniffi_c_api
+        --config ${CMAKE_CURRENT_SOURCE_DIR}/renamed.toml --out-dir bindings-expected
     WORKING_DIRECTORY ${BINDINGS_BUILD_DIR}
     COMMENT "Generating expected-style bindings"
 )

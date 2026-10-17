@@ -20,6 +20,8 @@
 #define TL_EXPECTED_VERSION_MINOR 1
 #define TL_EXPECTED_VERSION_PATCH 0
 
+#include <cstdio>
+#include <cstdlib>
 #include <exception>
 #include <functional>
 #include <type_traits>
@@ -214,11 +216,9 @@ template <typename E>
   throw std::forward<E>(e);
 #else
   (void)e;
-#ifdef _MSC_VER
-  __assume(0);
-#else
-  __builtin_unreachable();
-#endif
+  std::fputs("uniffi: expected::value() called on an error\n", stderr);
+  std::fflush(stderr);
+  std::abort();
 #endif
 }
 

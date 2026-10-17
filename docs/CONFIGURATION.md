@@ -41,15 +41,26 @@ NOTE: the `enum_style` option is separate for bindings and scaffolding generator
   - `"exceptions"` - throw the error (default)
   - `"expected"` - return it, and never throw, so the bindings build with `-fno-exceptions`
 
+- `strip_type_prefix` - a prefix to drop from type names, for crates that prefix their exported
+    types to keep them unique in languages without namespaces. With `strip_type_prefix = "Foo"`, the
+    records, objects, enums, and callback interfaces `FooClient` and `FooError` become
+    `Client` and `Error`. A name continues only after an uppercase letter, so `Foobar` stays as is,
+    and custom types keep their names. Generation fails if a stripped name is already a type.
+
+    ```toml
+    [bindings.cpp]
+    strip_type_prefix = "Foo"
+    ```
+
 ### `error_style = "expected"`
 
 A fallible function returns `uniffi::expected<T, E>`, and an async one returns
 `uniffi::Future<T, E>` whose `get()` and `then()` continuation deliver the same `expected`. An
 infallible async function returns `uniffi::Future<T>`, which delivers a plain `T`.
-`uniffi::expected` is `std::expected` when the standard library provides it (C++23) and a bundled
-[`tl::expected`](https://github.com/TartanLlama/expected) otherwise, written next to the bindings
-as `uniffi_expected.hpp`. Build the generated sources with the same standard as the code that
-includes them, so both see the same type.
+`uniffi::expected` is a bundled [`tl::expected`](https://github.com/TartanLlama/expected), written
+next to the bindings as `uniffi_expected.hpp`. It is never `std::expected`, even at C++23, so
+generated sources built at one standard link with code built at another. With exceptions disabled,
+`value()` on an error aborts with a message.
 
 Error enums are plain values rather than exception classes: every error enum becomes a struct
 holding a `std::variant` of its variants, like any other enum with fields. A flat error
