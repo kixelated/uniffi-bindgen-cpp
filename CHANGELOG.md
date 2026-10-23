@@ -1,4 +1,4 @@
-#### Unreleased
+#### v0.11.0-kixelated.6+v0.32.2
 
 ----
 - Core: Add the `strip_function_prefix` option, which drops a prefix from top-level function names
