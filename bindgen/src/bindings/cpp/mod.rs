@@ -13,7 +13,7 @@ use uniffi_bindgen::{
     BindingGenerator, Component, ComponentInterface, GenerationSettings,
 };
 
-use self::gen_cpp::{generate_cpp_bindings, Bindings};
+use self::gen_cpp::{filters::RESERVED_CPP_WORDS, generate_cpp_bindings, Bindings};
 
 pub(crate) struct CppBindingGenerator {
     pub scaffolding_mode: bool,
@@ -71,23 +71,33 @@ impl BindingGenerator for CppBindingGenerator {
     ) -> Result<()> {
         // Keyed by crate, so a component that imports a renamed type sees the new name too.
         let mut renames = HashMap::new();
+        // Types only: the type oracle renames each type it renders, and functions are not types.
+        let mut type_renames = HashMap::new();
         for Component { ci, config, .. } in components.iter() {
+            let mut table = toml::Table::new();
             if let Some(prefix) = config.strip_type_prefix() {
-                renames.insert(ci.crate_name().to_string(), strip_type_prefix(ci, prefix)?);
+                let types = strip_type_prefix(ci, prefix)?;
+                type_renames.extend(
+                    types
+                        .iter()
+                        .filter_map(|(old, new)| Some((old.clone(), new.as_str()?.to_string()))),
+                );
+                table.extend(types);
+            }
+            if let Some(prefix) = config.strip_function_prefix() {
+                table.extend(strip_function_prefix(ci, prefix)?);
+            }
+            if !table.is_empty() {
+                renames.insert(ci.crate_name().to_string(), table);
             }
         }
         if renames.is_empty() {
             return Ok(());
         }
 
-        let flat: HashMap<String, String> = renames
-            .values()
-            .flatten()
-            .filter_map(|(old, new)| Some((old.clone(), new.as_str()?.to_string())))
-            .collect();
         for component in components.iter_mut() {
             rename(&mut component.ci, &renames);
-            component.config.renames = flat.clone();
+            component.config.renames = type_renames.clone();
         }
         Ok(())
     }
@@ -134,6 +144,33 @@ fn strip_type_prefix(ci: &ComponentInterface, prefix: &str) -> Result<toml::Tabl
             "strip_type_prefix = \"{prefix}\" renames `{name}` to `{stripped}`, which is already a type"
         );
         renames.insert(name.clone(), stripped.into());
+    }
+    Ok(renames)
+}
+
+/// Renames each top-level function named `<prefix><name>` to `<name>`, where `<name>` starts with a
+/// lowercase letter. Methods keep their names, since their class already scopes them. Refuses a
+/// rename onto a name that is already a function or a C++ keyword.
+fn strip_function_prefix(ci: &ComponentInterface, prefix: &str) -> Result<toml::Table> {
+    let names: BTreeSet<&str> = ci.function_definitions().iter().map(|f| f.name()).collect();
+
+    let mut renames = toml::Table::new();
+    for name in &names {
+        let Some(stripped) = name.strip_prefix(prefix) else {
+            continue;
+        };
+        if !stripped.starts_with(|c: char| c.is_ascii_lowercase()) {
+            continue;
+        }
+        anyhow::ensure!(
+            !names.contains(stripped),
+            "strip_function_prefix = \"{prefix}\" renames `{name}` to `{stripped}`, which is already a function"
+        );
+        anyhow::ensure!(
+            !RESERVED_CPP_WORDS.contains(&stripped),
+            "strip_function_prefix = \"{prefix}\" renames `{name}` to `{stripped}`, which is reserved in C++"
+        );
+        renames.insert(name.to_string(), stripped.into());
     }
     Ok(renames)
 }

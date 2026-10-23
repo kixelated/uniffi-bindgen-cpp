@@ -18,7 +18,7 @@ type Result<T> = std::result::Result<T, askama::Error>;
 
 // Keywords and other commonly used words that are in fact macros that
 // expand to expressions (like `errno`).
-const RESERVED_CPP_WORDS: [&str; 100] = [
+pub(crate) const RESERVED_CPP_WORDS: [&str; 100] = [
     // Keywords
     "alignas",
     "alignof",

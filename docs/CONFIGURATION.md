@@ -52,6 +52,15 @@ NOTE: the `enum_style` option is separate for bindings and scaffolding generator
     strip_type_prefix = "Foo"
     ```
 
+- `strip_function_prefix` - the same for top-level functions. With `strip_function_prefix = "foo_"`,
+    `foo_connect` becomes `connect`. A name continues only after a lowercase letter, and methods
+    keep their names. Generation fails if a stripped name is already a function or a C++ keyword.
+
+    ```toml
+    [bindings.cpp]
+    strip_function_prefix = "foo_"
+    ```
+
 ### `error_style = "expected"`
 
 A fallible function returns `uniffi::expected<T, E>`, and an async one returns

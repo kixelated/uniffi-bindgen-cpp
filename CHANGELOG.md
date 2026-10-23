@@ -1,3 +1,9 @@
+#### Unreleased
+
+----
+- Core: Add the `strip_function_prefix` option, which drops a prefix from top-level function names
+  (`foo_connect` becomes `connect`)
+
 #### v0.11.0-kixelated.5+v0.32.2
 
 ----

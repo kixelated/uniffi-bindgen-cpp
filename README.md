@@ -14,7 +14,7 @@ cargo install uniffi-bindgen-cpp --git https://github.com/NordSecurity/uniffi-bi
 ```
 
 This fork carries LiveKit's async support (`livekit/uniffi-0.31-async`) ported to UniFFI 0.32, plus
-the `error_style = "expected"` and `strip_type_prefix` options. Its tags add a `-kixelated.N` pre-release so they never
+the `error_style = "expected"`, `strip_type_prefix`, and `strip_function_prefix` options. Its tags add a `-kixelated.N` pre-release so they never
 collide with upstream's:
 
 ```bash

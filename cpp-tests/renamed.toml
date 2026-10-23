@@ -1,3 +1,4 @@
 [bindings.cpp]
 error_style = "expected"
 strip_type_prefix = "Capi"
+strip_function_prefix = "capi_"
