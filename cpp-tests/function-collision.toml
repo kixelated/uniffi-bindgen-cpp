@@ -1,2 +1,2 @@
 [bindings.cpp]
-strip_function_prefix = "async_"
+strip_function_prefix = "async_maybe_"
