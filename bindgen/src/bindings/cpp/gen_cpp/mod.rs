@@ -100,6 +100,8 @@ pub(crate) struct Config {
     error_style: ErrorStyle,
     #[serde(default)]
     strip_type_prefix: Option<String>,
+    #[serde(default)]
+    strip_function_prefix: Option<String>,
     /// Every type renamed by `strip_type_prefix`, across all components, old name to new.
     #[serde(skip)]
     pub(crate) renames: HashMap<String, String>,
@@ -124,6 +126,10 @@ impl Config {
 
     pub(crate) fn strip_type_prefix(&self) -> Option<&str> {
         self.strip_type_prefix.as_deref()
+    }
+
+    pub(crate) fn strip_function_prefix(&self) -> Option<&str> {
+        self.strip_function_prefix.as_deref()
     }
 }
 

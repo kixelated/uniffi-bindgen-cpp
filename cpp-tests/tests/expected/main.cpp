@@ -105,6 +105,14 @@ void renamed_types() {
     CHECK(empty.error().to_string() == "invalid: empty name");
 }
 
+void renamed_functions() {
+    // `strip_function_prefix = "capi_"` names each free function without the prefix, async ones too.
+    CHECK(capi::checksum({1, 2, 3}) == 6);
+    CHECK(capi::fail(0));
+    CHECK(!capi::fail(1));
+    CHECK(capi::sum({1, 2, 3}).get() == 6);
+}
+
 void async_results() {
     CHECK(futures::greet("C++") == "Hello, C++");
     CHECK(futures::always_ready().get());
@@ -226,6 +234,7 @@ int main(int argc, char **argv) {
     sync_errors();
     error_display();
     renamed_types();
+    renamed_functions();
     async_results();
     continuations();
     cancellation();

@@ -1,0 +1,2 @@
+[bindings.cpp]
+strip_function_prefix = "oops_"

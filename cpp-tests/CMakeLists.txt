@@ -165,6 +165,26 @@ add_test(NAME strip-type-prefix-collision-test
 set_tests_properties(strip-type-prefix-collision-test PROPERTIES
     PASS_REGULAR_EXPRESSION "renames `Flat[A-Za-z]+` to `[A-Za-z]+`, which is already a type")
 
+# `strip_function_prefix` refuses to rename a function onto one that already exists, or onto a
+# C++ keyword. `--config` applies to every crate in the library, whose order varies by platform, so
+# each prefix renames onto a taken name in exactly one crate.
+add_test(NAME strip-function-prefix-collision-test
+    COMMAND ${BINDINGS_BUILD_DIR}/uniffi-bindgen-cpp${CMAKE_EXECUTABLE_SUFFIX}
+        --library ${UNIFFI_FIXTURES_LIB} --crate uniffi_fixture_async_calls
+        --config ${CMAKE_CURRENT_SOURCE_DIR}/function-collision.toml
+        --out-dir ${CMAKE_CURRENT_BINARY_DIR}/function-collision
+    WORKING_DIRECTORY ${BINDINGS_BUILD_DIR})
+set_tests_properties(strip-function-prefix-collision-test PROPERTIES
+    PASS_REGULAR_EXPRESSION "renames `async_maybe_new_megaphone` to `new_megaphone`, which is already a function")
+add_test(NAME strip-function-prefix-keyword-test
+    COMMAND ${BINDINGS_BUILD_DIR}/uniffi-bindgen-cpp${CMAKE_EXECUTABLE_SUFFIX}
+        --library ${UNIFFI_FIXTURES_LIB} --crate uniffi_cpp_error_types_builtin
+        --config ${CMAKE_CURRENT_SOURCE_DIR}/function-keyword.toml
+        --out-dir ${CMAKE_CURRENT_BINARY_DIR}/function-keyword
+    WORKING_DIRECTORY ${BINDINGS_BUILD_DIR})
+set_tests_properties(strip-function-prefix-keyword-test PROPERTIES
+    PASS_REGULAR_EXPRESSION "renames `oops_enum` to `enum`, which is reserved in C\\+\\+")
+
 # The C backend: a C11 header over expected-style C++ bindings, built without exceptions.
 set(C_BINDINGS_DIR ${BINDINGS_BUILD_DIR}/bindings-c)
 set(C_BINDING_FILES ${C_BINDINGS_DIR}/capi.cpp ${C_BINDINGS_DIR}/capi_c.cpp)
