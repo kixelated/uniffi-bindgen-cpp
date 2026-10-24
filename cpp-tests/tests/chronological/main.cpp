@@ -127,6 +127,9 @@ int main() {
         chronological::return_duration(std::chrono::nanoseconds::max())
     );
 
+    // Rust's Duration is unsigned.
+    EXPECT_EXCEPTION(chronological::return_duration(-1ns), std::runtime_error);
+
     test_string_timestamps();
 
     auto before = std::chrono::system_clock::now();

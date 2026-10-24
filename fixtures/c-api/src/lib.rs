@@ -1,6 +1,6 @@
 //! Every construct the C backend renders: objects, records with defaults, flat and data
-//! enums, errors with and without `Display`, bytes, optionals, lists, maps, and async calls
-//! that complete, fail, or stay pending until cancelled.
+//! enums, errors with and without `Display`, bytes, durations, optionals, lists, maps, and
+//! async calls that complete, fail, or stay pending until cancelled.
 
 use std::{
     collections::{HashMap, VecDeque},
@@ -11,6 +11,7 @@ use std::{
         Arc, Mutex,
     },
     task::{Context, Poll, Waker},
+    time::Duration,
 };
 
 uniffi::setup_scaffolding!("capi");
@@ -331,6 +332,38 @@ pub fn capi_flat_fail(gone: bool) -> Result<(), CapiFlatError> {
     } else {
         CapiFlatError::Busy("later".into())
     })
+}
+
+/// Durations in every position: a field, an optional, and a list.
+#[derive(Clone, Debug, PartialEq, uniffi::Record)]
+pub struct CapiTimer {
+    pub period: Duration,
+    #[uniffi(default = None)]
+    pub delay: Option<Duration>,
+    #[uniffi(default = [])]
+    pub laps: Vec<Duration>,
+}
+
+#[uniffi::export]
+pub fn capi_echo_timer(timer: CapiTimer) -> CapiTimer {
+    timer
+}
+
+#[uniffi::export]
+pub fn capi_twice(duration: Duration) -> Duration {
+    duration * 2
+}
+
+/// Half of `delay`, or none.
+#[uniffi::export]
+pub fn capi_halve(delay: Option<Duration>) -> Option<Duration> {
+    delay.map(|delay| delay / 2)
+}
+
+/// Builds a duration on the Rust side, which may be longer than C can hold.
+#[uniffi::export]
+pub fn capi_make_duration(secs: u64, nanos: u32) -> Duration {
+    Duration::new(secs, nanos)
 }
 
 /// Ready on its first poll.

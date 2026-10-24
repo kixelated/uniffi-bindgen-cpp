@@ -23,16 +23,30 @@ RustBuffer {{ ffi_converter_name }}::lower(const {{ type_name }} &val) {
     stream >> secs;
     stream >> nanos;
 
-    return std::chrono::seconds(secs) + std::chrono::nanoseconds(nanos);
+    // Rust's Duration reaches about 584 billion years, far past what int64_t nanoseconds hold.
+    constexpr auto max = {{ type_name }}::max();
+    constexpr auto max_secs = std::chrono::duration_cast<std::chrono::seconds>(max);
+    constexpr auto max_nanos = static_cast<uint32_t>((max - max_secs).count());
+    if (secs > static_cast<uint64_t>(max_secs.count()) ||
+        (secs == static_cast<uint64_t>(max_secs.count()) && nanos > max_nanos)) {
+        {% call macros::fail("Duration does not fit in int64_t nanoseconds") %}
+    }
+
+    return std::chrono::seconds(static_cast<int64_t>(secs)) + std::chrono::nanoseconds(nanos);
 }
 
 void {{ ffi_converter_name }}::write(RustStream &stream, const {{ type_name }} &val) {
-    auto secs =  std::chrono::duration_cast<std::chrono::duration<int64_t>>(val);
+    auto secs = std::chrono::duration_cast<std::chrono::seconds>(val);
     auto nanos = (val - secs).count();
 
-    stream << secs.count() << static_cast<uint32_t>(nanos);
+    stream << static_cast<uint64_t>(secs.count()) << static_cast<uint32_t>(nanos);
 }
 
-uint64_t {{ ffi_converter_name }}::allocation_size(const {{ type_name }} &) {
+uint64_t {{ ffi_converter_name }}::allocation_size(const {{ type_name }} &val) {
+    // Rust's Duration is unsigned. Every lower sizes its value before allocating or writing it,
+    // so refusing here leaks nothing when the refusal throws.
+    if (val.count() < 0) {
+        {% call macros::fail("Duration must not be negative") %}
+    }
     return static_cast<uint64_t>(sizeof(uint64_t) + sizeof(uint32_t));
 }
