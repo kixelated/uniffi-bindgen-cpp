@@ -1,3 +1,11 @@
+#### Unreleased
+
+----
+- C: Render `Duration` as `<namespace>_duration`, an `int64_t` count of nanoseconds like the C++
+  binding's
+- Core: Fail on a negative `Duration`, which reached Rust as a huge one, and on one from Rust
+  longer than `std::chrono::nanoseconds` holds, which overflowed
+
 #### v0.11.0-kixelated.6+v0.32.2
 
 ----

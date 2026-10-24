@@ -213,6 +213,16 @@ endmacro(c_test_case)
 c_test_case(c_api)
 c_test_case(c_dispatcher)
 
+# A duration Rust cannot represent, or C cannot, aborts rather than wrapping.
+add_test(NAME c-negative-duration-test COMMAND c_api-test negative-duration)
+set_tests_properties(c-negative-duration-test PROPERTIES
+    TIMEOUT 30
+    PASS_REGULAR_EXPRESSION "uniffi: Duration must not be negative")
+add_test(NAME c-long-duration-test COMMAND c_api-test long-duration)
+set_tests_properties(c-long-duration-test PROPERTIES
+    TIMEOUT 30
+    PASS_REGULAR_EXPRESSION "uniffi: Duration does not fit in int64_t nanoseconds")
+
 # The C backend refuses what it cannot render instead of emitting half of it.
 add_test(NAME c-refuses-callbacks-test
     COMMAND ${BINDINGS_BUILD_DIR}/uniffi-bindgen-cpp${CMAKE_EXECUTABLE_SUFFIX}

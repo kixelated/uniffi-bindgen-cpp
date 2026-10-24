@@ -90,6 +90,9 @@ handle is `my_object *`, released with `my_object_free`. The rest follows from a
   the matching `_free` (`<namespace>_string_free` for strings).
 * Optional strings, objects, and structs are pointers that are NULL when absent; optional scalars
   are `{ has_value, value }` structs. Bytes, lists, and maps are pointer and length structs.
+* A duration is `<namespace>_duration`, an `int64_t` count of nanoseconds like the C++
+  binding's. Passing a negative one, or receiving one longer than `INT64_MAX` nanoseconds (about
+  292 years), aborts.
 * An async call takes a callback and `user_data` and returns a `<namespace>_task *`. The callback
   runs once on the dispatcher with the result, which it owns, unless the dispatcher refuses the
   work or has shut down, which abandons the call. Free every task: freeing a pending
@@ -99,7 +102,7 @@ handle is `my_object *`, released with `my_object_free`. The rest follows from a
   host's own, which receives `<namespace>_work *` items to run with `<namespace>_work_run`.
 
 The C backend refuses what it cannot render faithfully, such as callback interfaces, custom and
-external types, timestamps, durations, and exported traits other than `Display` on errors.
+external types, timestamps, and exported traits other than `Display` on errors.
 
 # Configuration options
 

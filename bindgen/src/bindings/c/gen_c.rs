@@ -402,6 +402,7 @@ impl<'a> Gen<'a> {
             Type::Float32 => scalar("float", "f32"),
             Type::Float64 => scalar("double", "f64"),
             Type::Boolean => scalar("bool", "bool"),
+            Type::Duration => scalar(&format!("{ns}_duration"), "duration"),
             Type::String => (Kind::String, "const char *".into(), "string".into()),
             Type::Bytes => (Kind::Bytes, format!("{ns}_bytes"), "bytes".into()),
             Type::Record { name, .. } => {
@@ -462,7 +463,7 @@ impl<'a> Gen<'a> {
                 )
             }
             Type::Box { inner_type } => return self.ctype(inner_type),
-            Type::Timestamp | Type::Duration | Type::Set { .. } | Type::Custom { .. } => {
+            Type::Timestamp | Type::Set { .. } | Type::Custom { .. } => {
                 bail!("the C backend does not support `{cpp}` yet")
             }
             Type::CallbackInterface { name, .. } => {
@@ -504,6 +505,16 @@ impl<'a> Gen<'a> {
         }
 
         let types: Vec<CType> = self.types.values().cloned().collect();
+
+        // A typedef, so the unit shows wherever a duration is declared. Nanoseconds in an
+        // int64_t mirror the C++ binding's `std::chrono::nanoseconds`.
+        if let Some(ct) = types.iter().find(|ct| matches!(ct.ty, Type::Duration)) {
+            self.claim(&ct.c)?;
+            h.push_str(&line_doc(
+                "A duration in nanoseconds. Passing a negative one, or receiving one past INT64_MAX, aborts.",
+            ));
+            writeln!(h, "typedef int64_t {};\n", ct.c)?;
+        }
 
         // Flat enums first: C cannot forward-declare an enum.
         for ct in types.iter().filter(|ct| matches!(ct.kind, Kind::FlatEnum)) {
@@ -1248,6 +1259,12 @@ impl<'a> Gen<'a> {
             decl(&format!("{field} &"), "value")
         );
         match &ct.kind {
+            // The C++ converters refuse a negative duration and one past INT64_MAX nanoseconds.
+            Kind::Scalar if matches!(ct.ty, Type::Duration) => {
+                writeln!(out, "{to} {{\n    return value.count();\n}}\n")?;
+                writeln!(out, "{from} {{\n    return {}(value);\n}}\n", ct.cpp)?;
+                writeln!(out, "{free} {{\n    (void)value;\n}}\n")?;
+            }
             Kind::Scalar => {
                 writeln!(out, "{to} {{\n    return value;\n}}\n")?;
                 writeln!(out, "{from} {{\n    return value;\n}}\n")?;

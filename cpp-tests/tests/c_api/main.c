@@ -3,6 +3,8 @@
 
 #include <capi.h>
 
+#include <signal.h>
+#include <stdlib.h>
 #include <string.h>
 
 static int streq(const char *a, const char *b) {
@@ -207,6 +209,40 @@ static void scalars(void) {
     text = capi_describe(value, color, "hi", &point, &payload);
     CHECK(streq(text, "Some(3) Some(Blue) Some(\"hi\") Some(CapiPoint { x: 1, y: 2 }) Some([1, 2])"));
     capi_string_free(text);
+}
+
+/* Durations cross as nanoseconds, split into Rust's seconds and nanoseconds on the way. */
+static void durations(void) {
+    const capi_duration laps[] = {1, 1000000001, INT64_MAX};
+    capi_optional_duration delay;
+    capi_timer timer = capi_timer_default();
+    capi_timer *echo;
+
+    CHECK(capi_twice(0) == 0);
+    CHECK(capi_twice(1234567891) == 2469135782);
+    CHECK(capi_make_duration(9223372036, 854775807) == INT64_MAX);
+
+    delay.has_value = false;
+    delay.value = 0;
+    CHECK(!capi_halve(delay).has_value);
+    delay.has_value = true;
+    delay.value = 3000000001;
+    delay = capi_halve(delay);
+    CHECK(delay.has_value && delay.value == 1500000000);
+
+    CHECK(timer.period == 0 && !timer.delay.has_value && timer.laps.len == 0);
+    timer.period = 2500000000;
+    timer.delay.has_value = true;
+    timer.delay.value = 7;
+    timer.laps.data = laps;
+    timer.laps.len = 3;
+    echo = capi_echo_timer(&timer);
+    CHECK(echo->period == 2500000000);
+    CHECK(echo->delay.has_value && echo->delay.value == 7);
+    CHECK(echo->laps.len == 3);
+    CHECK(echo->laps.data[0] == 1 && echo->laps.data[1] == 1000000001);
+    CHECK(echo->laps.data[2] == INT64_MAX);
+    capi_timer_free(echo);
 }
 
 static void errors(void) {
@@ -448,11 +484,28 @@ static void async_calls(void) {
     test_latch_free(r.done);
 }
 
-int main(void) {
+static void exit_on_abort(int sig) {
+    (void)sig;
+    _Exit(0);
+}
+
+int main(int argc, char **argv) {
+    /* Each aborts as expected; its test matches the message printed before the abort. */
+    if (argc > 1) {
+        signal(SIGABRT, exit_on_abort);
+        if (strcmp(argv[1], "negative-duration") == 0) {
+            (void)capi_twice(-1);
+        } else if (strcmp(argv[1], "long-duration") == 0) {
+            (void)capi_make_duration(9223372036, 854775808);
+        }
+        return 1;
+    }
+
     defaults();
     records();
     enums();
     scalars();
+    durations();
     errors();
     objects();
     async_calls();
