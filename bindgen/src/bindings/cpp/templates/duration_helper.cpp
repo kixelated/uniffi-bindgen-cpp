@@ -36,16 +36,17 @@ RustBuffer {{ ffi_converter_name }}::lower(const {{ type_name }} &val) {
 }
 
 void {{ ffi_converter_name }}::write(RustStream &stream, const {{ type_name }} &val) {
-    // Rust's Duration is unsigned.
-    if (val.count() < 0) {
-        {% call macros::fail("Duration must not be negative") %}
-    }
     auto secs = std::chrono::duration_cast<std::chrono::seconds>(val);
     auto nanos = (val - secs).count();
 
     stream << static_cast<uint64_t>(secs.count()) << static_cast<uint32_t>(nanos);
 }
 
-uint64_t {{ ffi_converter_name }}::allocation_size(const {{ type_name }} &) {
+uint64_t {{ ffi_converter_name }}::allocation_size(const {{ type_name }} &val) {
+    // Rust's Duration is unsigned. Every lower sizes its value before allocating or writing it,
+    // so refusing here leaks nothing when the refusal throws.
+    if (val.count() < 0) {
+        {% call macros::fail("Duration must not be negative") %}
+    }
     return static_cast<uint64_t>(sizeof(uint64_t) + sizeof(uint32_t));
 }
