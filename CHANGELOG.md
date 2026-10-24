@@ -1,4 +1,4 @@
-#### Unreleased
+#### v0.11.0-kixelated.7+v0.32.2
 
 ----
 - C: Render `Duration` as `<namespace>_duration`, an `int64_t` count of nanoseconds like the C++

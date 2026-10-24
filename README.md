@@ -18,7 +18,7 @@ the `error_style = "expected"`, `strip_type_prefix`, and `strip_function_prefix`
 collide with upstream's:
 
 ```bash
-cargo install uniffi-bindgen-cpp --locked --git https://github.com/kixelated/uniffi-bindgen-cpp --tag v0.11.0-kixelated.6+v0.32.2
+cargo install uniffi-bindgen-cpp --locked --git https://github.com/kixelated/uniffi-bindgen-cpp --tag v0.11.0-kixelated.7+v0.32.2
 ```
 
 # How to generate bindings
