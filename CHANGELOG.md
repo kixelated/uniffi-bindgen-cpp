@@ -1,4 +1,4 @@
-#### Unreleased
+#### v0.11.0-kixelated.8+v0.32.2
 
 ----
 - C: Render an object's exported traits (`Display`, `Debug`, `Eq`, `Hash`, `Ord`) as functions
