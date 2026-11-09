@@ -14,7 +14,8 @@ use askama::Template;
 use heck::{ToShoutySnakeCase, ToSnakeCase};
 use uniffi_bindgen::{
     interface::{
-        AsType, Callable, DefaultValue, Enum, Field, Literal, Object, Radix, Record, Type,
+        AsType, Callable, DefaultValue, Enum, Field, Literal, Method, Object, Radix, Record, Type,
+        UniffiTrait,
     },
     ComponentInterface,
 };
@@ -307,12 +308,6 @@ impl<'a> Gen<'a> {
             if obj.has_callback_interface() {
                 bail!(
                     "the C backend does not support foreign-implemented traits, but `{}` is one",
-                    obj.name()
-                );
-            }
-            if let Some(t) = obj.uniffi_traits().first() {
-                bail!(
-                    "the C backend does not support exported traits on objects yet, but `{}` exports {t:?}",
                     obj.name()
                 );
             }
@@ -969,6 +964,43 @@ impl<'a> Gen<'a> {
             let name = format!("{c}_{}", c_name(method.name()));
             let call = format!("self->inner->{}", filters::fn_name(method.name()).unwrap());
             self.render_callable(h, s, method, &name, Some(&c), &call)?;
+        }
+
+        // Exported traits call the C++ binding's method of the same name.
+        for t in obj.uniffi_traits() {
+            let methods: Vec<(&Method, &str, &str)> = match &t {
+                UniffiTrait::Display { fmt } => vec![(
+                    fmt,
+                    "to_string",
+                    "Formats this object with Rust's `Display`.",
+                )],
+                UniffiTrait::Debug { fmt } => vec![(
+                    fmt,
+                    "to_debug_string",
+                    "Formats this object with Rust's `Debug`.",
+                )],
+                UniffiTrait::Eq { eq, ne } => vec![
+                    (
+                        eq,
+                        "eq",
+                        "Whether the two objects are equal, by Rust's `Eq`.",
+                    ),
+                    (ne, "ne", "Whether the two objects differ, by Rust's `Eq`."),
+                ],
+                UniffiTrait::Hash { hash } => {
+                    vec![(hash, "hash", "Hashes this object with Rust's `Hash`.")]
+                }
+                UniffiTrait::Ord { cmp } => vec![(
+                    cmp,
+                    "cmp",
+                    "Compares the two objects by Rust's `Ord`: negative, zero, or positive.",
+                )],
+            };
+            for (method, short, summary) in methods {
+                h.push_str(&line_doc(summary));
+                let call = format!("self->inner->{short}");
+                self.render_callable(h, s, method, &format!("{c}_{short}"), Some(&c), &call)?;
+            }
         }
         Ok(())
     }

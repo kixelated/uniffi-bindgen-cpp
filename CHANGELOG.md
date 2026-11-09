@@ -1,3 +1,9 @@
+#### v0.11.0-kixelated.8+v0.32.2
+
+----
+- C: Render an object's exported traits (`Display`, `Debug`, `Eq`, `Hash`, `Ord`) as functions
+  named like the C++ binding's methods, which the backend refused before
+
 #### v0.11.0-kixelated.7+v0.32.2
 
 ----
