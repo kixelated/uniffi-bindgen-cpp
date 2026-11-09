@@ -334,6 +334,25 @@ pub fn capi_flat_fail(gone: bool) -> Result<(), CapiFlatError> {
     })
 }
 
+/// An object exporting every trait the C backend renders as a function.
+#[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord, uniffi::Object)]
+#[uniffi::export(Debug, Display, Eq, Hash, Ord)]
+pub struct CapiTag(String);
+
+impl std::fmt::Display for CapiTag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "#{}", self.0)
+    }
+}
+
+#[uniffi::export]
+impl CapiTag {
+    #[uniffi::constructor]
+    pub fn new(name: String) -> Arc<Self> {
+        Arc::new(Self(name))
+    }
+}
+
 /// Durations in every position: a field, an optional, and a list.
 #[derive(Clone, Debug, PartialEq, uniffi::Record)]
 pub struct CapiTimer {

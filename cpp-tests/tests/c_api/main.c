@@ -282,6 +282,31 @@ static void errors(void) {
     capi_error_free(NULL);
 }
 
+static void traits(void) {
+    capi_tag *a = capi_tag_new("a");
+    capi_tag *same = capi_tag_new("a");
+    capi_tag *b = capi_tag_new("b");
+    char *text;
+
+    text = capi_tag_to_string(a);
+    CHECK(streq(text, "#a"));
+    capi_string_free(text);
+    text = capi_tag_to_debug_string(a);
+    CHECK(streq(text, "CapiTag(\"a\")"));
+    capi_string_free(text);
+
+    /* Two handles to equal objects compare by value, not by pointer. */
+    CHECK(a != same);
+    CHECK(capi_tag_eq(a, same) && !capi_tag_ne(a, same));
+    CHECK(!capi_tag_eq(a, b) && capi_tag_ne(a, b));
+    CHECK(capi_tag_hash(a) == capi_tag_hash(same));
+    CHECK(capi_tag_cmp(a, b) < 0 && capi_tag_cmp(b, a) > 0 && capi_tag_cmp(a, same) == 0);
+
+    capi_tag_free(a);
+    capi_tag_free(same);
+    capi_tag_free(b);
+}
+
 static void objects(void) {
     capi_store *store = NULL;
     capi_store *fork;
@@ -508,6 +533,7 @@ int main(int argc, char **argv) {
     durations();
     errors();
     objects();
+    traits();
     async_calls();
     capi_shutdown_dispatcher();
     return 0;

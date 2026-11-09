@@ -98,11 +98,16 @@ handle is `my_object *`, released with `my_object_free`. The rest follows from a
   work or has shut down, which abandons the call. Free every task: freeing a pending
   one cancels the Rust future, and once `<namespace>_task_free` returns the callback has finished
   or will never run.
+* An object's exported traits are functions named like the C++ binding's methods:
+  `<object>_to_string` (`Display`), `<object>_to_debug_string` (`Debug`), `<object>_eq` and
+  `<object>_ne` (`Eq`), `<object>_hash` (`Hash`), and `<object>_cmp` (`Ord`). Two handles are
+  distinct pointers even to equal objects, so compare them with `<object>_eq`.
 * Callbacks run on the default dispatcher thread unless `<namespace>_set_dispatcher` installs a
   host's own, which receives `<namespace>_work *` items to run with `<namespace>_work_run`.
 
 The C backend refuses what it cannot render faithfully, such as callback interfaces, custom and
-external types, timestamps, and exported traits other than `Display` on errors.
+external types, timestamps, and exported traits on records and enums (other than `Display` on
+errors).
 
 # Configuration options
 
